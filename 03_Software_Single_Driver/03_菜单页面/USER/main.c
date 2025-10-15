@@ -6,11 +6,14 @@
 #include "timer.h"
 #include "KEY.h"
 #include "LED.h"
+#include "menu.h"
 
-uint8_t KeyNum;
-uint8_t FlashFlag;
+
+
+
 u8 ImageBW[5624];
 u16 i;
+int menu2;
 
 int main()
 {
@@ -22,33 +25,32 @@ int main()
 	Timer_Init();
 	
 		/************************全刷清屏************************/	
-	EPD_Init();
-	Paint_NewImage(ImageBW, EPD_W, EPD_H, 0, WHITE);			// 绑定画布
-	Paint_Clear(WHITE);											// 清空画布为白底
-	EPD_Display_Clear();
-	
-	// 关键：把画布送到屏RAM再刷新
-	EPD_Display(ImageBW);
-	EPD_Update();
+//	EPD_Init();
+//	Paint_NewImage(ImageBW, EPD_W, EPD_H, 0, WHITE);			// 绑定画布
+//	Paint_Clear(WHITE);											// 清空画布为白底
+//	EPD_Display_Clear();
+//	
+//	// 关键：把画布送到屏RAM再刷新
+//	EPD_Display(ImageBW);
+//	EPD_Update();
 
-	EPD_DeepSleep();
-	Paint_Clear(WHITE);											//清除画布缓存	
+//	EPD_DeepSleep();
+//	Paint_Clear(WHITE);											//清除画布缓存	
 		/************************全刷清屏************************/	
 	
 		/************************显示汉字************************/		
-	EPD_Init();
-	Paint_NewImage(ImageBW,EPD_W,EPD_H,0,WHITE);		//创建画布
-	Paint_Clear(WHITE);	
-	EPD_Display_Clear();		
-	EPD_ShowChinese(0,0,"中景园",12,BLACK);
-	EPD_ShowChinese(0,20,"中景园",16,BLACK);
-	EPD_ShowChinese(0,40,"中景园",24,BLACK);
-	EPD_ShowChinese(0,80,"中景园",32,BLACK);
-	EPD_Display(ImageBW);
-	EPD_Update();
-	EPD_DeepSleep();
-	Paint_Clear(WHITE);  		//清除画布缓存
-	delay_ms(1000);
+//	EPD_Init();
+//	Paint_NewImage(ImageBW,EPD_W,EPD_H,0,WHITE);		//创建画布
+//	Paint_Clear(WHITE);	
+//	EPD_Display_Clear();
+//	//EPD_ShowChinese(0,0,"风扇控制",24,BLACK);	
+//	menu2 = menu1();
+//	EPD_Display(ImageBW);
+
+//	EPD_Update();
+//	EPD_DeepSleep();
+//	Paint_Clear(WHITE);  		//清除画布缓存
+//	delay_ms(1000);
 
 
 	/************************快刷************************/
@@ -68,46 +70,26 @@ int main()
 //	Paint_Clear(WHITE);											//清除画布缓存	
 
 //	/************************局刷模式************************/
-//	EPD_Init();
-//	Paint_NewImage(ImageBW, EPD_W, EPD_H, 0, WHITE);			// 绑定画布
-//	Paint_Clear(WHITE);
+	EPD_Init();
+	Paint_NewImage(ImageBW, EPD_W, EPD_H, 0, WHITE);			// 绑定画布
+	Paint_Clear(WHITE);
 
-//	// 上电先全屏清白并全刷一次，去残影
-//	EPD_Display_Clear();
-//	EPD_Update();
-//	EPD_Clear_R26H();											// 进入局刷对比模式
-//	delay_ms(1000);
+	// 上电先全屏清白并全刷一次，去残影
+	EPD_Display_Clear();
+	EPD_Update();
+	EPD_Clear_R26H();											// 进入局刷对比模式
+	delay_ms(1000);
 	
 
 
 	while(1)
 	{
 		
-//		KeyNum = Key_GetNum();
-//		
-//		if(KeyNum == 1)
-//		{
-//			FlashFlag = !FlashFlag;
-//		}
-//		
-//		if(FlashFlag)
-//		{
 
-//			LED1_SetMode(1);
-//		
-//		
-//		}else
-//		{
-//			LED1_SetMode(0);
+	
+		Paint_Clear(WHITE);
+		menu2 = menu1();
 
-//		}
-//		
-//		
-//		Paint_Clear(WHITE);
-//		EPD_ShowString(0, 33, (u8*)"num = ", 16, BLACK);
-//		EPD_ShowNum(48, 33, i++, 6, 16, BLACK);			// 6位宽，按需调整位数
-//		EPD_Display(ImageBW);
-//		EPD_PartUpdate();
 
 
 	}
@@ -124,7 +106,7 @@ void TIM2_IRQHandler(void)
 	{
 
 		Ket_Tick();
-//		LED_Tick();
+		LED_Tick();
 		TIM_ClearITPendingBit(TIM2, TIM_IT_Update);
 	}
 }
