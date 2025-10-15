@@ -1,31 +1,31 @@
 //////////////////////////////////////////////////////////////////////////////////	 
-//æœ¬ç¨‹åºåªä¾›å­¦ä¹ ä½¿ç”¨ï¼Œæœªç»ä½œè€…è®¸å¯ï¼Œä¸å¾—ç”¨äºå…¶å®ƒä»»ä½•ç”¨é€”
-//ä¸­æ™¯å›­ç”µå­
-//åº—é“ºåœ°å€ï¼šhttp://shop73023976.taobao.com
+//±¾³ÌĞòÖ»¹©Ñ§Ï°Ê¹ÓÃ£¬Î´¾­×÷ÕßĞí¿É£¬²»µÃÓÃÓÚÆäËüÈÎºÎÓÃÍ¾
+//ÖĞ¾°Ô°µç×Ó
+//µêÆÌµØÖ·£ºhttp://shop73023976.taobao.com
 //
-//  æ–‡ ä»¶ å   : main.c
-//  ç‰ˆ æœ¬ å·   : v2.0
-//  ä½œ    è€…   : ZhaoJian
-//  ç”Ÿæˆæ—¥æœŸ   : 2023-11-30
-//  æœ€è¿‘ä¿®æ”¹   : 
-//  åŠŸèƒ½æè¿°   :æ¼”ç¤ºä¾‹ç¨‹(STM32F103ç³»åˆ—)
-//              è¯´æ˜: 
+//  ÎÄ ¼ş Ãû   : main.c
+//  °æ ±¾ ºÅ   : v2.0
+//  ×÷    Õß   : ZhaoJian
+//  Éú³ÉÈÕÆÚ   : 2023-11-30
+//  ×î½üĞŞ¸Ä   : 
+//  ¹¦ÄÜÃèÊö   :ÑİÊ¾Àı³Ì(STM32F103ÏµÁĞ)
+//              ËµÃ÷: 
 //              ----------------------------------------------------------------
-//              GND   ç”µæºåœ°
-//              VCC   3.3vç”µæº
-//              SCL   PA0ï¼ˆSCLKï¼‰
-//              SDA   PA1ï¼ˆMOSIï¼‰
+//              GND   µçÔ´µØ
+//              VCC   3.3vµçÔ´
+//              SCL   PA0£¨SCLK£©
+//              SDA   PA1£¨MOSI£©
 //              RES   PA2
 //              DC    PA3
 //              CS    PA4
 //              BLK   PA5
 //              ----------------------------------------------------------------
-// ä¿®æ”¹å†å²   :
-// æ—¥    æœŸ   : 
-// ä½œ    è€…   : ZhaoJian
-// ä¿®æ”¹å†…å®¹   : åˆ›å»ºæ–‡ä»¶
-//ç‰ˆæƒæ‰€æœ‰ï¼Œç›—ç‰ˆå¿…ç©¶ã€‚
-//Copyright(C) ä¸­æ™¯å›­ç”µå­2023-11-30
+// ĞŞ¸ÄÀúÊ·   :
+// ÈÕ    ÆÚ   : 
+// ×÷    Õß   : ZhaoJian
+// ĞŞ¸ÄÄÚÈİ   : ´´½¨ÎÄ¼ş
+//°æÈ¨ËùÓĞ£¬µÁ°æ±Ø¾¿¡£
+//Copyright(C) ÖĞ¾°Ô°µç×Ó2023-11-30
 //All rights reserved
 //******************************************************************************/
 
@@ -44,39 +44,39 @@ u8 ImageBW[5624];
 //	delay_init();
 //	uart_init(115200);
 //	EPD_GPIOInit();
-//	/************************å…¨åˆ·************************/
+//	/************************È«Ë¢************************/
 //	EPD_Init();
 //	EPD_Display(gImage_1);
 //	EPD_Update();
 //	EPD_DeepSleep();
 //	delay_ms(1000);
-//  /*********************å¿«åˆ·æ¨¡å¼**********************/
+//  /*********************¿ìË¢Ä£Ê½**********************/
 //	EPD_FastInit();
 //	EPD_Display(gImage_2);
 //	EPD_FastUpdate();
 //	EPD_DeepSleep();
 //	delay_ms(1000);
-//	/************************å…¨åˆ·************************/
+//	/************************È«Ë¢************************/
 //	EPD_Init();
-//	Paint_NewImage(ImageBW,EPD_W,EPD_H,0,WHITE);		//åˆ›å»ºç”»å¸ƒ
+//	Paint_NewImage(ImageBW,EPD_W,EPD_H,0,WHITE);		//´´½¨»­²¼
 //	Paint_Clear(WHITE);	
 //	EPD_Display_Clear();
 //	EPD_ShowPicture(40,0,216,112,gImage_3,BLACK);
 //	EPD_ShowString(36,130,"2.66inch",16,BLACK);
-//	EPD_ShowChinese(100,130,"ç”µå­å¢¨æ°´å±æ–­ç”µå¯æ˜¾ç¤º",16,BLACK);
+//	EPD_ShowChinese(100,130,"µç×ÓÄ«Ë®ÆÁ¶Ïµç¿ÉÏÔÊ¾",16,BLACK);
 //	EPD_Display(ImageBW);
 //	EPD_Update();
 //	EPD_DeepSleep();
-//	Paint_Clear(WHITE);  		//æ¸…é™¤ç”»å¸ƒç¼“å­˜
+//	Paint_Clear(WHITE);  		//Çå³ı»­²¼»º´æ
 //	delay_ms(1000);
-//	/************************å…ˆå…¨åˆ·æ¸…å±ç„¶åå·¥ä½œåœ¨å±€åˆ·æ¨¡å¼************************/
+//	/************************ÏÈÈ«Ë¢ÇåÆÁÈ»ºó¹¤×÷ÔÚ¾ÖË¢Ä£Ê½************************/
 //	EPD_Init();
 //	EPD_Display_Clear();
-//	EPD_Update();						//æ›´æ–°ç”»é¢æ˜¾ç¤º
+//	EPD_Update();						//¸üĞÂ»­ÃæÏÔÊ¾
 //	EPD_Clear_R26H();
 //	while(1)
 //	{
-//		/*********************å±€åˆ·æ¨¡å¼**********************/
+//		/*********************¾ÖË¢Ä£Ê½**********************/
 //		EPD_ShowString(33,0,"Welcome to 2.66-inch E-paper",16,BLACK);		
 //		EPD_ShowString(49,20,"with 296 x 152 resolution",16,BLACK);	
 //		EPD_ShowString(68,40,"Demo-Test-2023/10/16",16,BLACK);
@@ -86,7 +86,7 @@ u8 ImageBW[5624];
 //		EPD_ShowWatch(88,74,num,4,2,48,BLACK);
 //		EPD_DrawCircle(245,100,25,BLACK,0);
 //		EPD_DrawCircle(265,100,25,BLACK,1);
-//		EPD_ShowChinese(44,136,"éƒ‘å·ä¸­æ™¯å›­ç”µå­ç§‘æŠ€æœ‰é™å…¬å¸",16,BLACK);
+//		EPD_ShowChinese(44,136,"Ö£ÖİÖĞ¾°Ô°µç×Ó¿Æ¼¼ÓĞÏŞ¹«Ë¾",16,BLACK);
 //		EPD_DrawRectangle(0,0,295,151,BLACK,0);
 //		num+=0.01;
 //		EPD_Display(ImageBW);
@@ -114,56 +114,56 @@ int main()
 //	u8 str[] = "num = ";
 	delay_init();
 	uart_init(115200);
-	//EPD_GPIOInit();
+	EPD_GPIOInit();
 
 
 	
-	/************************å…¨åˆ·************************/	
+	/************************È«Ë¢************************/	
 //	EPD_Init();
-//	Paint_NewImage(ImageBW, EPD_W, EPD_H, 0, WHITE);			// ç»‘å®šç”»å¸ƒ
-//	Paint_Clear(WHITE);											// æ¸…ç©ºç”»å¸ƒä¸ºç™½åº•
+//	Paint_NewImage(ImageBW, EPD_W, EPD_H, 0, WHITE);			// °ó¶¨»­²¼
+//	Paint_Clear(WHITE);											// Çå¿Õ»­²¼Îª°×µ×
 //	EPD_Display_Clear();
 //	
-//	// ç»˜åˆ¶åˆ°ç”»å¸ƒ
+//	// »æÖÆµ½»­²¼
 //	EPD_ShowString(0, 33, str, 16, BLACK);
 //	
-//	// å…³é”®ï¼šæŠŠç”»å¸ƒé€åˆ°å±RAMå†åˆ·æ–°
+//	// ¹Ø¼ü£º°Ñ»­²¼ËÍµ½ÆÁRAMÔÙË¢ĞÂ
 //	EPD_Display(ImageBW);
 //	EPD_Update();
 
 //	EPD_DeepSleep();
-//	Paint_Clear(WHITE);											//æ¸…é™¤ç”»å¸ƒç¼“å­˜
+//	Paint_Clear(WHITE);											//Çå³ı»­²¼»º´æ
 
 
 
-	/************************å¿«åˆ·************************/
-//	EPD_FastInit();
-//	Paint_NewImage(ImageBW, EPD_W, EPD_H, 0, WHITE);			// ç»‘å®šç”»å¸ƒ
-//	Paint_Clear(WHITE);											// æ¸…ç©ºç”»å¸ƒä¸ºç™½åº•
-//	EPD_Display_Clear();
-//	
-//	// ç»˜åˆ¶åˆ°ç”»å¸ƒ
-//	//EPD_ShowString(0, 33, str, 16, BLACK);
-//	EPD_ShowChinese(44,136,"æ°´å¢¨å±",16,BLACK);		//å¦‚æœæ˜¯æ¨ªå±çš„è¯æ˜¯åœ¨æœ€åä¸€è¡Œï¼Œå­—å·æ˜¯16ï¼Œ136+16-1 = 151åˆšå¥½æ˜¯åœ¨æœ€åä¸€è¡Œ
-//	// å…³é”®ï¼šæŠŠç”»å¸ƒé€åˆ°å±RAMå†åˆ·æ–°
-//	EPD_Display(ImageBW);
-//	EPD_FastUpdate();
+	/************************¿ìË¢************************/
+	EPD_FastInit();
+	Paint_NewImage(ImageBW, EPD_W, EPD_H, 0, WHITE);			// °ó¶¨»­²¼
+	Paint_Clear(WHITE);											// Çå¿Õ»­²¼Îª°×µ×
+	EPD_Display_Clear();
+	
+	// »æÖÆµ½»­²¼
+	//EPD_ShowString(0, 33, str, 16, BLACK);
+	EPD_ShowChinese(44,136, "Ë®Ä«ÆÁ" ,16,BLACK);		//Èç¹ûÊÇºáÆÁµÄ»°ÊÇÔÚ×îºóÒ»ĞĞ£¬×ÖºÅÊÇ16£¬136+16-1 = 151¸ÕºÃÊÇÔÚ×îºóÒ»ĞĞ
+	// ¹Ø¼ü£º°Ñ»­²¼ËÍµ½ÆÁRAMÔÙË¢ĞÂ
+	EPD_Display(ImageBW);
+	EPD_FastUpdate();
 
-//	EPD_DeepSleep();
-//	Paint_Clear(WHITE);											//æ¸…é™¤ç”»å¸ƒç¼“å­˜	
+	EPD_DeepSleep();
+	Paint_Clear(WHITE);											//Çå³ı»­²¼»º´æ	
 //	
 	
 	
-	/*********************å±€åˆ·æ¨¡å¼**********************/
+	/*********************¾ÖË¢Ä£Ê½**********************/
 	
 //	EPD_Init();
-//	Paint_NewImage(ImageBW, EPD_W, EPD_H, 0, WHITE);			// ç»‘å®šç”»å¸ƒ
+//	Paint_NewImage(ImageBW, EPD_W, EPD_H, 0, WHITE);			// °ó¶¨»­²¼
 //	Paint_Clear(WHITE);
 
-//	// ä¸Šç”µå…ˆå…¨å±æ¸…ç™½å¹¶å…¨åˆ·ä¸€æ¬¡ï¼Œå»æ®‹å½±
+//	// ÉÏµçÏÈÈ«ÆÁÇå°×²¢È«Ë¢Ò»´Î£¬È¥²ĞÓ°
 //	EPD_Display_Clear();
 //	EPD_Update();
-//	EPD_Clear_R26H();											// è¿›å…¥å±€åˆ·å¯¹æ¯”æ¨¡å¼
+//	EPD_Clear_R26H();											// ½øÈë¾ÖË¢¶Ô±ÈÄ£Ê½
 //	delay_ms(1000);
 //	
 //	Paint_Clear(WHITE);
@@ -183,7 +183,7 @@ int main()
 //	{
 //		Paint_Clear(WHITE);
 //		EPD_ShowString(0, 33, (u8*)"num = ", 16, BLACK);
-//		EPD_ShowNum(48, 33, n, 6, 16, BLACK);			// 6ä½å®½ï¼ŒæŒ‰éœ€è°ƒæ•´ä½æ•°
+//		EPD_ShowNum(48, 33, n, 6, 16, BLACK);			// 6Î»¿í£¬°´Ğèµ÷ÕûÎ»Êı
 //		EPD_Display(ImageBW);
 //		EPD_PartUpdate();
 //		delay_ms(500);
@@ -192,38 +192,38 @@ int main()
 
 
 
-	/************************å®éªŒ************************/
+	/************************ÊµÑé************************/
 //	EPD_FastInit();
-//	Paint_NewImage(ImageBW, EPD_W, EPD_H, 270, WHITE);			// ç»‘å®šç”»å¸ƒ
-//	Paint_Clear(WHITE);											// æ¸…ç©ºç”»å¸ƒä¸ºç™½åº•
+//	Paint_NewImage(ImageBW, EPD_W, EPD_H, 270, WHITE);			// °ó¶¨»­²¼
+//	Paint_Clear(WHITE);											// Çå¿Õ»­²¼Îª°×µ×
 //	EPD_Display_Clear();
 //	
-//	// ç»˜åˆ¶åˆ°ç”»å¸ƒ
+//	// »æÖÆµ½»­²¼
 //	//EPD_ShowString(0, 33, str, 16, BLACK);
-//	EPD_ShowChinese(44,0,"æ°´å¢¨å±",16,BLACK);		
-//	// å…³é”®ï¼šæŠŠç”»å¸ƒé€åˆ°å±RAMå†åˆ·æ–°
+//	EPD_ShowChinese(44,0,"Ë®Ä«ÆÁ",16,BLACK);		
+//	// ¹Ø¼ü£º°Ñ»­²¼ËÍµ½ÆÁRAMÔÙË¢ĞÂ
 //	EPD_Display(ImageBW);
 //	EPD_FastUpdate();
 
 //	EPD_DeepSleep();
-//	Paint_Clear(WHITE);											//æ¸…é™¤ç”»å¸ƒç¼“å­˜	
+//	Paint_Clear(WHITE);											//Çå³ı»­²¼»º´æ	
 	
 	
-	/************************å…¨åˆ·æ¸…å±************************/	
+	/************************È«Ë¢ÇåÆÁ************************/	
 //	EPD_Init();
-//	Paint_NewImage(ImageBW, EPD_W, EPD_H, 0, WHITE);			// ç»‘å®šç”»å¸ƒ
-//	Paint_Clear(WHITE);											// æ¸…ç©ºç”»å¸ƒä¸ºç™½åº•
+//	Paint_NewImage(ImageBW, EPD_W, EPD_H, 0, WHITE);			// °ó¶¨»­²¼
+//	Paint_Clear(WHITE);											// Çå¿Õ»­²¼Îª°×µ×
 //	EPD_Display_Clear();
 //	
-//	// ç»˜åˆ¶åˆ°ç”»å¸ƒ
+//	// »æÖÆµ½»­²¼
 //	//EPD_ShowString(0, 33, str, 16, BLACK);
 //	
-//	// å…³é”®ï¼šæŠŠç”»å¸ƒé€åˆ°å±RAMå†åˆ·æ–°
+//	// ¹Ø¼ü£º°Ñ»­²¼ËÍµ½ÆÁRAMÔÙË¢ĞÂ
 //	EPD_Display(ImageBW);
 //	EPD_Update();
 
 //	EPD_DeepSleep();
-//	Paint_Clear(WHITE);											//æ¸…é™¤ç”»å¸ƒç¼“å­˜	
+//	Paint_Clear(WHITE);											//Çå³ı»­²¼»º´æ	
 
 
 

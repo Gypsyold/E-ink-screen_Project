@@ -3,18 +3,18 @@
         {
             "name": "Template",
             "includePath": [
-                "e:\\Github_warehouse\\E-ink screen\\01-2.66EPD显示屏STM32F103C8-SPI例程\\USER",
-                "e:\\Github_warehouse\\E-ink screen\\01-2.66EPD显示屏STM32F103C8-SPI例程\\CORE",
-                "e:\\Github_warehouse\\E-ink screen\\01-2.66EPD显示屏STM32F103C8-SPI例程\\STM32F10x_FWLib\\inc",
-                "e:\\Github_warehouse\\E-ink screen\\01-2.66EPD显示屏STM32F103C8-SPI例程\\SYSTEM\\delay",
-                "e:\\Github_warehouse\\E-ink screen\\01-2.66EPD显示屏STM32F103C8-SPI例程\\SYSTEM\\sys",
-                "e:\\Github_warehouse\\E-ink screen\\01-2.66EPD显示屏STM32F103C8-SPI例程\\SYSTEM\\usart",
-                "e:\\Github_warehouse\\E-ink screen\\01-2.66EPD显示屏STM32F103C8-SPI例程\\HANDWARE\\EPD",
+                "e:\\Github_warehouse\\E-ink screen_Project\\03_Software_Single_Driver\\01-2.66EPD显示屏STM32F103C8_SPI驱动\\USER",
+                "e:\\Github_warehouse\\E-ink screen_Project\\03_Software_Single_Driver\\01-2.66EPD显示屏STM32F103C8_SPI驱动\\CORE",
+                "e:\\Github_warehouse\\E-ink screen_Project\\03_Software_Single_Driver\\01-2.66EPD显示屏STM32F103C8_SPI驱动\\STM32F10x_FWLib\\inc",
+                "e:\\Github_warehouse\\E-ink screen_Project\\03_Software_Single_Driver\\01-2.66EPD显示屏STM32F103C8_SPI驱动\\SYSTEM\\delay",
+                "e:\\Github_warehouse\\E-ink screen_Project\\03_Software_Single_Driver\\01-2.66EPD显示屏STM32F103C8_SPI驱动\\SYSTEM\\sys",
+                "e:\\Github_warehouse\\E-ink screen_Project\\03_Software_Single_Driver\\01-2.66EPD显示屏STM32F103C8_SPI驱动\\SYSTEM\\usart",
+                "e:\\Github_warehouse\\E-ink screen_Project\\03_Software_Single_Driver\\01-2.66EPD显示屏STM32F103C8_SPI驱动\\HANDWARE\\EPD",
                 "E:\\Keil\\Keil_v5\\Keil5_MDK\\ARM\\ARMCC\\include",
                 "E:\\Keil\\Keil_v5\\Keil5_MDK\\ARM\\ARMCC\\include\\arm_linux",
                 "E:\\Keil\\Keil_v5\\Keil5_MDK\\ARM\\ARMCC\\include\\arm_linux_compat",
                 "E:\\Keil\\Keil_v5\\Keil5_MDK\\ARM\\ARMCC\\include\\rw",
-                "e:\\Github_warehouse\\E-ink screen\\01-2.66EPD显示屏STM32F103C8-SPI例程\\STM32F10x_FWLib\\src"
+                "e:\\Github_warehouse\\E-ink screen_Project\\03_Software_Single_Driver\\01-2.66EPD显示屏STM32F103C8_SPI驱动\\STM32F10x_FWLib\\src"
             ],
             "defines": [
                 "STM32F10X_MD",

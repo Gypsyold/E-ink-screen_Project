@@ -46,10 +46,10 @@
 #define EPD_ReadBusy GPIO_ReadInputDataBit(EPD_BUSY_GPIO_PORT,EPD_BUSY_GPIO_PIN)
 
 
-void EPD_GPIOInit(void);  //åˆå§‹åŒ–EPDå¯¹åº”GPIOå£
-void EPD_WR_Bus(u8 dat);	//å†™å…¥ä¸€ä¸ªå­—èŠ‚
-void EPD_WR_REG(u8 reg);	//å†™å…¥æŒ‡ä»¤
-void EPD_WR_DATA8(u8 dat);	//å†™å…¥æ•°æ®
+void EPD_GPIOInit(void);  //³õÊ¼»¯EPD¶ÔÓ¦GPIO¿Ú
+void EPD_WR_Bus(u8 dat);	//Ğ´ÈëÒ»¸ö×Ö½Ú
+void EPD_WR_REG(u8 reg);	//Ğ´ÈëÖ¸Áî
+void EPD_WR_DATA8(u8 dat);	//Ğ´ÈëÊı¾İ
 
 #endif
 

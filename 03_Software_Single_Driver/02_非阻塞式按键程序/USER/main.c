@@ -21,28 +21,28 @@ int main()
 	LED_Init();
 	Timer_Init();
 	
-		/************************å…¨åˆ·æ¸…å±************************/	
+		/************************È«Ë¢ÇåÆÁ************************/	
 //	EPD_Init();
-//	Paint_NewImage(ImageBW, EPD_W, EPD_H, 0, WHITE);			// ç»‘å®šç”»å¸ƒ
-//	Paint_Clear(WHITE);											// æ¸…ç©ºç”»å¸ƒä¸ºç™½åº•
+//	Paint_NewImage(ImageBW, EPD_W, EPD_H, 0, WHITE);			// °ó¶¨»­²¼
+//	Paint_Clear(WHITE);											// Çå¿Õ»­²¼Îª°×µ×
 //	EPD_Display_Clear();
 //	
-//	// å…³é”®ï¼šæŠŠç”»å¸ƒé€åˆ°å±RAMå†åˆ·æ–°
+//	// ¹Ø¼ü£º°Ñ»­²¼ËÍµ½ÆÁRAMÔÙË¢ĞÂ
 //	EPD_Display(ImageBW);
 //	EPD_Update();
 
 //	EPD_DeepSleep();
-//	Paint_Clear(WHITE);											//æ¸…é™¤ç”»å¸ƒç¼“å­˜	
+//	Paint_Clear(WHITE);											//Çå³ı»­²¼»º´æ	
 	
-	/************************å±€åˆ·æ¨¡å¼************************/
+	/************************¾ÖË¢Ä£Ê½************************/
 	EPD_Init();
-	Paint_NewImage(ImageBW, EPD_W, EPD_H, 0, WHITE);			// ç»‘å®šç”»å¸ƒ
+	Paint_NewImage(ImageBW, EPD_W, EPD_H, 0, WHITE);			// °ó¶¨»­²¼
 	Paint_Clear(WHITE);
 
-	// ä¸Šç”µå…ˆå…¨å±æ¸…ç™½å¹¶å…¨åˆ·ä¸€æ¬¡ï¼Œå»æ®‹å½±
+	// ÉÏµçÏÈÈ«ÆÁÇå°×²¢È«Ë¢Ò»´Î£¬È¥²ĞÓ°
 	EPD_Display_Clear();
 	EPD_Update();
-	EPD_Clear_R26H();											// è¿›å…¥å±€åˆ·å¯¹æ¯”æ¨¡å¼
+	EPD_Clear_R26H();											// ½øÈë¾ÖË¢¶Ô±ÈÄ£Ê½
 	delay_ms(1000);
 	
 
@@ -72,7 +72,7 @@ int main()
 		
 		Paint_Clear(WHITE);
 		EPD_ShowString(0, 33, (u8*)"num = ", 16, BLACK);
-		EPD_ShowNum(48, 33, i++, 6, 16, BLACK);			// 6ä½å®½ï¼ŒæŒ‰éœ€è°ƒæ•´ä½æ•°
+		EPD_ShowNum(48, 33, i++, 6, 16, BLACK);			// 6Î»¿í£¬°´Ğèµ÷ÕûÎ»Êı
 		EPD_Display(ImageBW);
 		EPD_PartUpdate();
 
