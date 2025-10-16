@@ -67,32 +67,25 @@ void EPD_GPIOInit(void)
 	
 	
 	// 初始状态：CS拉高（未选中），DC默认低（指令模式）
-	GPIO_SetBits(EPD_CS_GPIO_PORT, EPD_CS_GPIO_PIN); // CS高
-	GPIO_ResetBits(EPD_DC_GPIO_PORT, EPD_DC_GPIO_PIN); // DC低
+	EPD_CS_Set();
+	EPD_DC_Clr();
 	
 }
 
+void EPD_WR_Bus(u8 dat)
+{
 
-//void EPD_WR_Bus(u8 dat)
-//{
-//	u8 i;
-//	EPD_CS_Clr();
-//	for(i=0;i<8;i++)
-//	{
-//		EPD_SCL_Clr();
-//		if(dat&0x80)
-//		{
-//			EPD_SDA_Set();
-//		}
-//		else
-//		{
-//			EPD_SDA_Clr();
-//		}
-//		EPD_SCL_Set();
-//		dat<<=1;
-//	}
-//	EPD_CS_Set();	
-//}
+	EPD_CS_Clr();
+	// 等待SPI发送缓冲区为空
+	while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_TXE) == RESET);
+	// 发送数据（硬件自动处理SCK和MOSI的时序）
+	SPI_I2S_SendData(SPI1, dat);
+	// 等待发送完成（确保数据发送完毕再拉高CS）
+	while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_BSY) == SET);
+	EPD_CS_Set();	
+}
+
+
 
 void EPD_WR_REG(u8 reg)
 {
@@ -109,18 +102,6 @@ void EPD_WR_DATA8(u8 dat)
 
 
 
-void EPD_WR_Bus(u8 dat)
-{
-
-	EPD_CS_Clr();
-	// 等待SPI发送缓冲区为空
-	while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_TXE) == RESET);
-	// 发送数据（硬件自动处理SCK和MOSI的时序）
-	SPI_I2S_SendData(SPI1, dat);
-	// 等待发送完成（确保数据发送完毕再拉高CS）
-	while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_BSY) == SET);
-	EPD_CS_Set();	
-}
 
 
 

@@ -1,5 +1,6 @@
 #include "EPD.h"
 #include "delay.h"
+#include "dma.h"
 
 
 
@@ -95,6 +96,8 @@ void EPD_Init(void)
 	EPD_READBUSY();   
 	EPD_WR_REG(0x12);  //SWRESET
 	EPD_READBUSY();   
+	// 初始化用于 SPI 发送的大块数据 DMA
+	EPD_DMA_Init();
 	
 	EPD_WR_REG(0x3C); //BorderWavefrom
 	EPD_WR_DATA8(0x05);
@@ -199,17 +202,14 @@ void EPD_Clear_R26H(void)
 *******************************************************************/
 void EPD_Display(const u8 *image)
 {
-	u16 i,j,Width,Height;
+	u16 Width,Height;
 	Width=(EPD_W%8==0)?(EPD_W/8):(EPD_W/8+1);
 	Height=EPD_H;
 	EPD_WR_REG(0x24);
-	for (j=0;j<Height;j++) 
-	{
-		for (i=0;i<Width;i++) 
-		{
-			EPD_WR_DATA8(image[i+j*Width]);
-		}
-	}
+	// 使用 DMA 一次性发送整幅图像数据（Width*Height 字节）
+	EPD_SendData_DMA((const uint8_t*)image, (uint16_t)(Width*Height));
+	// 等待 DMA 发送完成
+	while (!g_epd_dma_tx_done) {;}
 }
 
 
