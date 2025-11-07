@@ -74,7 +74,8 @@ void EPD_SendData_DMA(const uint8_t *data, uint16_t len)
 void DMA1_Channel3_IRQHandler(void) 
 {
   // 检查是否是传输完成中断
-  if (DMA_GetITStatus(DMA1_IT_TC3) != RESET) {
+  if (DMA_GetITStatus(DMA1_IT_TC3) != RESET) 
+{
     // 1. 清除中断标志
     DMA_ClearITPendingBit(DMA1_IT_TC3);
 
