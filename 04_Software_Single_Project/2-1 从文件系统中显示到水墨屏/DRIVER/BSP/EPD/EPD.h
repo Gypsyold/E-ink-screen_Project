@@ -9,6 +9,8 @@
 #define WHITE 0xFF
 #define BLACK 0x00
 
+#define MAX_SHOW_BYTES 144
+
 extern int data1;
 
 

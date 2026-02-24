@@ -748,7 +748,17 @@ void EPD_ShowChineseString_flash(u16 x, u16 y, u8 *str, Font_Size font_size, u16
  * @param  color: 显示颜色（电子纸黑白对应值）
  * @retval 无
  */
-void EPD_ShowMixedString(u16 x, u16 y, u8 *buf, Font_Size font_size, u16 ascii_size, u16 color)
+
+// 修复版：解决循环顺序错误、中文字符判断冗余
+
+
+// 需和主函数中保持一致的宏定义（可放到头文件中统一管理）
+#define MAX_SHOW_BYTES    144       // 一屏最大处理/显示字节数
+#define SCREEN_WIDTH      296       // 屏幕宽度（px）
+#define SCREEN_HEIGHT     144       // 屏幕高度（px）
+
+// ====================== 【显示函数区】修复后的混合字符串显示 ======================
+u16 EPD_ShowMixedString(u16 x, u16 y, u8 *buf, Font_Size font_size, u16 ascii_size, u16 color)
 {
     u16 i = 0;
     u16 curr_x = x;
@@ -756,56 +766,35 @@ void EPD_ShowMixedString(u16 x, u16 y, u8 *buf, Font_Size font_size, u16 ascii_s
     const Font_Param *font = &font_param_table[font_size];
     u8 ascii_buf[32] = {0}; 
     u16 ascii_idx = 0;
-    u16 line_height = font->height; // 单行文/ASCII高度（如24px）
-    
-    // ====================== 核心优化：统一屏幕参数为变量（替代宏定义） ======================
-    // 屏幕基础参数（建议迁移到硬件配置文件，如epd.h，此处内联定义保持完整性）
-    u16 screen_width = 296;         // 屏幕宽度（px）
-    u16 screen_height = 144;        // 屏幕总高度（px），和宽度保持一致的变量形式
-    u16 screen_max_lines = screen_height / line_height; // 动态计算最大行数
-    
-    u16 ascii_width = ascii_size / 2; // ASCII字符宽度（如12px）
-    u16 chinese_width = font->width;  // 中文字符宽度（如24px）
-    u8 is_out_of_height = 0;         // 纵向越界标记（避免重复判断）
+    u16 line_height = font->height;
+    u16 screen_max_lines = SCREEN_HEIGHT / line_height;
+    u16 ascii_width = ascii_size / 2;
+    u16 chinese_width = font->width;
+    u8 is_out_of_height = 0;
 
-    // 参数有效性校验（保留原逻辑，新增屏幕参数合理性校验）
-    if (font_size >= sizeof(font_param_table)/sizeof(Font_Param) || buf == NULL)
+    // 参数有效性校验
+    if (font_size >= sizeof(font_param_table)/sizeof(Font_Param) || buf == NULL || line_height == 0 || SCREEN_HEIGHT == 0)
     {
-        printf("错误：参数无效！font_size越界或buf为空\n");
-        return;
-    }
-    // 新增：屏幕参数合理性校验（避免行高为0导致除零错误）
-    if (line_height == 0 || screen_height == 0)
-    {
-        printf("错误：屏幕高度或行高为0，无法计算最大行数\n");
-        return;
+        printf("错误：参数无效！\n");
+        return 0;
     }
 
-    // 从起始Y坐标计算初始行号（保留原逻辑）
     line_num = y / line_height;
 
-    // ====================== 核心逻辑：遍历字符串并显示 ======================
-    while (i < 256)
+    // 核心循环：遍历字符串并显示
+    while (i < MAX_SHOW_BYTES)
     {
-        // 1. 先判断纵向是否已越界（前置预判，解决滞后性）
-        if (line_num >= screen_max_lines)
-        {
-            printf("警告：当前行号(%d)超出屏幕最大行数(%d)，终止显示\n", line_num, screen_max_lines);
-            is_out_of_height = 1; // 标记纵向越界
-            break;
-        }
-
-        // 2. 字符串结束符判断（保留原逻辑）
-        if (buf[i] == 0 && (i+1 >= 256 || buf[i+1] == 0)) 
+        // 1. 字符串结束符判断
+        if (buf[i] == 0 && (i+1 >= MAX_SHOW_BYTES || buf[i+1] == 0)) 
         {
             printf("提示：已遍历到字符串末尾，退出循环\n");
             break;
         }
 
-        // 3. 换行符处理（0x0D=回车/0x0A=换行）
+        // 2. 换行符处理（0x0D=回车/0x0A=换行）
         if (buf[i] == 0x0D || buf[i] == 0x0A)
         {
-            // 先显示缓存的ASCII字符（保留原逻辑）
+            // 先显示缓存的ASCII字符
             if (ascii_idx > 0)
             {
                 ascii_buf[ascii_idx] = '\0';
@@ -814,28 +803,27 @@ void EPD_ShowMixedString(u16 x, u16 y, u8 *buf, Font_Size font_size, u16 ascii_s
                 ascii_idx = 0;
             }
 
-            // 换行前预判纵向越界（解决滞后性）
+            // 换行前预判纵向越界
             if (line_num + 1 >= screen_max_lines)
             {
                 printf("警告：换行后行号(%d)超出屏幕最大行数(%d)，终止显示\n", line_num+1, screen_max_lines);
                 is_out_of_height = 1;
                 break;
             }
-            line_num++; // 行号+1（换行）
-            curr_x = x; // 重置X坐标到起始位置
+            line_num++;
+            curr_x = x;
 
-            // 跳过连续换行符（保留原逻辑）
-            while (i < 256 && (buf[i] == 0x0D || buf[i] == 0x0A)) i++;
+            // 跳过连续换行符
+            while (i < MAX_SHOW_BYTES && (buf[i] == 0x0D || buf[i] == 0x0A)) i++;
             continue;
         }
 
-        // 4. 处理ASCII字符（单字节，<=0x7F）
+        // 3. 处理ASCII字符（单字节，<=0x7F）
         if (buf[i] <= 0x7F && buf[i] != 0)
         {
-            // 横向溢出判断：剩余宽度不足放下1个ASCII，换行（保留原逻辑）
-            if (curr_x + ascii_width > screen_width)
+            // 横向溢出判断
+            if (curr_x + ascii_width > SCREEN_WIDTH)
             {
-                // 换行前预判纵向越界
                 if (line_num + 1 >= screen_max_lines)
                 {
                     printf("警告：ASCII换行后行号(%d)超出屏幕最大行数(%d)，终止显示\n", line_num+1, screen_max_lines);
@@ -846,12 +834,12 @@ void EPD_ShowMixedString(u16 x, u16 y, u8 *buf, Font_Size font_size, u16 ascii_s
                 curr_x = x;
             }
 
-            // 存入ASCII缓冲区（保留原逻辑）
+            // 存入ASCII缓冲区
             ascii_buf[ascii_idx++] = buf[i];
             i++;
 
-            // 缓冲区满/遇到非ASCII，批量显示（保留原逻辑）
-            if (ascii_idx >= 31 || (i < 256 && !(buf[i] <= 0x7F && buf[i] != 0)))
+            // 缓冲区满，批量显示
+            if (ascii_idx >= 31)
             {
                 ascii_buf[ascii_idx] = '\0';
                 EPD_ShowString(curr_x, line_num*line_height, ascii_buf, ascii_size, color);
@@ -859,10 +847,10 @@ void EPD_ShowMixedString(u16 x, u16 y, u8 *buf, Font_Size font_size, u16 ascii_s
                 ascii_idx = 0;
             }
         }
-        // 5. 处理中文字符（双字节，0x81~0xFE）
-        else if ((buf[i] >= 0x81 && buf[i] <= 0xFE) && (i+1 < 256 && buf[i+1] != 0))
+        // 4. 处理中文字符（双字节，0x81~0xFE）
+        else if ((buf[i] >= 0x81 && buf[i] <= 0xFE) && (i+1 < MAX_SHOW_BYTES))
         {
-            // 先显示缓存的ASCII（保留原逻辑）
+            // 先显示缓存的ASCII
             if (ascii_idx > 0)
             {
                 ascii_buf[ascii_idx] = '\0';
@@ -871,10 +859,9 @@ void EPD_ShowMixedString(u16 x, u16 y, u8 *buf, Font_Size font_size, u16 ascii_s
                 ascii_idx = 0;
             }
 
-            // 横向溢出判断：剩余宽度不足放下1个中文，换行（保留原逻辑）
-            if (curr_x + chinese_width > screen_width)
+            // 横向溢出判断
+            if (curr_x + chinese_width > SCREEN_WIDTH)
             {
-                // 换行前预判纵向越界
                 if (line_num + 1 >= screen_max_lines)
                 {
                     printf("警告：中文换行后行号(%d)超出屏幕最大行数(%d)，终止显示\n", line_num+1, screen_max_lines);
@@ -885,7 +872,7 @@ void EPD_ShowMixedString(u16 x, u16 y, u8 *buf, Font_Size font_size, u16 ascii_s
                 curr_x = x;
             }
 
-            // 显示中文并更新坐标（保留原逻辑）
+            // 显示中文并更新坐标
             EPD_show_Chinese_from_flash(curr_x, line_num*line_height, &buf[i], font_size, color);
             curr_x += chinese_width;
             i += 2;
@@ -895,7 +882,7 @@ void EPD_ShowMixedString(u16 x, u16 y, u8 *buf, Font_Size font_size, u16 ascii_s
             i++; // 无效字符，跳过
         }
 
-        // 原循环内纵向保护（双重保险）
+        // 5. 处理完字符后，判断纵向是否越界
         if (line_num >= screen_max_lines)
         {
             printf("警告：内容超出屏幕高度！\n");
@@ -904,11 +891,9 @@ void EPD_ShowMixedString(u16 x, u16 y, u8 *buf, Font_Size font_size, u16 ascii_s
         }
     }
 
-    // ====================== 最后一段ASCII完整纵向校验 ======================
-    // 显示最后一段ASCII（仅当未纵向越界且缓冲区有内容时执行）
+    // 统一处理最后一段ASCII
     if (ascii_idx > 0 && !is_out_of_height)
     {
-        // 第一步：前置纵向校验（避免越界显示）
         if (line_num >= screen_max_lines)
         {
             printf("警告：最后一段ASCII行号(%d)超出屏幕最大行数(%d)，放弃显示\n", line_num, screen_max_lines);
@@ -916,10 +901,8 @@ void EPD_ShowMixedString(u16 x, u16 y, u8 *buf, Font_Size font_size, u16 ascii_s
         }
         else
         {
-            // 第二步：横向溢出判断（保留原逻辑）
-            if (curr_x + (ascii_idx * ascii_width) > screen_width)
+            if (curr_x + (ascii_idx * ascii_width) > SCREEN_WIDTH)
             {
-                // 换行前先判断是否越界（核心：解决滞后性）
                 if (line_num + 1 >= screen_max_lines)
                 {
                     printf("警告：最后一段ASCII换行后行号(%d)超出屏幕最大行数(%d)，放弃显示\n", line_num+1, screen_max_lines);
@@ -927,15 +910,14 @@ void EPD_ShowMixedString(u16 x, u16 y, u8 *buf, Font_Size font_size, u16 ascii_s
                 }
                 else
                 {
-                    line_num++; // 换行
-                    curr_x = x; // 重置X坐标
+                    line_num++;
+                    curr_x = x;
                 }
             }
 
-            // 第三步：最终校验+显示（确保万无一失）
             if (ascii_idx > 0 && line_num < screen_max_lines)
             {
-                ascii_buf[ascii_idx] = '\0'; // 加字符串结束符
+                ascii_buf[ascii_idx] = '\0';
                 EPD_ShowString(curr_x, line_num*line_height, ascii_buf, ascii_size, color);
                 printf("提示：最后一段ASCII显示完成，位置(X:%d,Y:%d)\n", curr_x, line_num*line_height);
             }
@@ -946,4 +928,8 @@ void EPD_ShowMixedString(u16 x, u16 y, u8 *buf, Font_Size font_size, u16 ascii_s
         printf("警告：纵向已越界，最后一段ASCII(%d个字符)放弃显示\n", ascii_idx);
         ascii_idx = 0;
     }
+
+    // 返回最终的i（真正处理到的字节数）
+    return i;
 }
+
