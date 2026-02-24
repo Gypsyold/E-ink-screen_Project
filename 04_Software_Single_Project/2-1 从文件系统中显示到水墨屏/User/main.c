@@ -93,19 +93,82 @@ BYTE ReadBuffer[READ_BUF_SIZE] = "还未写入";	/* 读缓冲区 */
 u8 leftover_byte = 0;        // 被截断的GBK首字节（0=无遗留）
 u8 has_leftover = 0;         // 是否有遗留字节标记
 u32 file_offset = 0;         // 当前文件偏移量（页起始位置）
-u32 page_history[PAGE_HISTORY_MAX];  // 历史偏移量数组
-u8 history_idx = 0;                  // 当前历史索引
-u8 is_file_open = 0;                 // 文件是否已打开标记
-u8 is_file_end = 0;                  // 文件是否读完标记
+u32 page_history[PAGE_HISTORY_MAX];  // page_history[i] = 第i+1页的起始偏移
+u8 current_page = 0;         // 当前显示的页数（从0开始，0=第1页）
+u8 max_saved_page = 0;       // 已保存的最大页数（避免越界）
+u8 is_file_open = 0;         // 文件是否已打开标记
+u8 is_file_end = 0;          // 文件是否读完标记
 
 u8 ImageBW[5624];
 
 // ====================== 【翻页逻辑区】核心翻页显示函数 ======================
+// 新增：专门用于获取下一页起始偏移的函数（不显示，只计算）
+u32 GetNextPageOffset(u32 curr_offset)
+{
+    u32 temp_offset = curr_offset;
+    u8 temp_leftover = leftover_byte;
+    u8 temp_has_leftover = has_leftover;
+    UINT temp_read_len = READ_BUF_SIZE;
+    BYTE temp_buf[READ_BUF_SIZE] = {0};
+    UINT temp_fnum = 0;
+    
+    // 模拟处理遗留字节
+    if(temp_has_leftover)
+    {
+        temp_buf[0] = temp_leftover;
+        temp_read_len = READ_BUF_SIZE - 1;
+        temp_leftover = 0;
+        temp_has_leftover = 0;
+    }
+    
+    // 移动文件指针
+    res_sd = f_lseek(&fnew, temp_offset);
+    if(res_sd != FR_OK)
+    {
+        printf("！！获取下一页偏移失败，错误码：%d\r\n",res_sd);
+        return curr_offset;
+    }
+    
+    // 读取数据
+    res_sd = f_read(&fnew, &temp_buf[temp_has_leftover ? 1 : 0], temp_read_len, &temp_fnum);
+    if(res_sd != FR_OK)
+    {
+        printf("！！读取数据失败，错误码：%d\r\n",res_sd);
+        return curr_offset;
+    }
+    
+    // 计算显示字节数
+    uint16_t actual_used = EPD_ShowMixedString(0,0,temp_buf,FONT_24X24,24,BLACK);
+    u16 last_valid_end = 0;
+    u32 skip_bytes = actual_used;
+    
+    // 判断截断
+    if(actual_used == MAX_SHOW_BYTES)
+    {
+        if(is_truncated_and_get_boundary(temp_buf, actual_used, &last_valid_end))
+        {
+            temp_leftover = temp_buf[last_valid_end];
+            temp_has_leftover = 1;
+            skip_bytes = last_valid_end;
+        }
+        else
+        {
+            skip_bytes = last_valid_end;
+        }
+    }
+    
+    // 恢复原始状态
+    leftover_byte = temp_leftover;
+    has_leftover = temp_has_leftover;
+    
+    // 返回下一页起始偏移
+    return curr_offset + skip_bytes;
+}
+
 void Novel_ShowOnePage(u8 read_only)
 {
 	// 保存原始偏移量（上翻时恢复）
 	u32 orig_offset = file_offset;
-	// 实际读取的字节数（考虑遗留字节）
 	UINT read_len = READ_BUF_SIZE;
 
 	// 1. 清空整个读取缓冲区
@@ -153,7 +216,7 @@ void Novel_ShowOnePage(u8 read_only)
 	EPD_Display(ImageBW);
 	EPD_PartUpdate();
 
-	// 7. 下翻模式：使用精准解析判断截断
+	// 7. 下翻模式：使用精准解析判断截断（仅更新偏移，不保存历史）
 	if(read_only == 0) 
 	{
 		u16 last_valid_end = 0;
@@ -184,16 +247,18 @@ void Novel_ShowOnePage(u8 read_only)
 			skip_bytes = actual_used;
 		}
 		
-		// 更新偏移量（修复：用%lu打印u32类型）
+		// 更新偏移量（仅为下一页做准备）
 		file_offset += skip_bytes;
-		printf("》下一页起始偏移：%d\r\n",file_offset);
+		printf("》下一页起始偏移：%lu\r\n",file_offset);
 	}
 	else // 上翻模式
 	{
+		// 上翻页时强制恢复原始偏移，清空所有状态
 		file_offset = orig_offset;
 		leftover_byte = 0;
 		has_leftover = 0;
-		printf("》上翻页模式，偏移量保持为页起始：%d\r\n",file_offset);
+		is_file_end = 0;
+		printf("》上翻页模式，偏移量保持为页起始：%lu\r\n",file_offset);
 	}
 }
 
@@ -209,10 +274,11 @@ int main(void)
 
 	res_sd = f_mount(&fs,"0:",1);
 	printf("res_sd = %d\r\n",res_sd);
+	// 适配新的按键映射提示
 	printf("KEYUP   : 打开小说文件并显示第一页\r\n");
-	printf("KEYLEFT : 保留原功能（测试显示）\r\n");
+	printf("KEYDOWN : 保留原功能（测试显示）\r\n");
 	printf("KEYRIGHT: 翻到下一页\r\n");
-	printf("KEYDOWN : 翻到上一页\r\n");
+	printf("KEYLEFT : 翻到上一页\r\n");
 
 	EPD_GPIOInit();
 	EPD_Init();
@@ -231,6 +297,9 @@ int main(void)
 	memset(page_history, 0, sizeof(page_history));
 	leftover_byte = 0;
 	has_leftover = 0;
+	current_page = 0;
+	max_saved_page = 0;
+	page_history[0] = 0; // 预存第一页偏移
 
 	while(1)
 	{
@@ -246,13 +315,15 @@ int main(void)
 				is_file_open = 0;
 			}
 			
-			// 重置所有变量
+			// 重置所有变量（核心：重置页数相关）
 			leftover_byte = 0;
 			has_leftover = 0;
 			file_offset = 0;
 			is_file_end = 0;
-			history_idx = 0;
+			current_page = 0;          // 回到第1页
+			max_saved_page = 0;        // 已保存页数重置
 			memset(page_history, 0, sizeof(page_history));
+			page_history[0] = 0;       // 第1页偏移固定为0
 			
 			// 打开小说文件
 			res_sd = f_open(&fnew, NOVEL_FILE_PATH, FA_OPEN_EXISTING | FA_READ); 	 
@@ -260,11 +331,14 @@ int main(void)
 			{
 				printf("》打开小说文件成功。\r\n");
 				is_file_open = 1;       
-				// 记录第一页起始位置0
-				page_history[history_idx++] = file_offset; 
-				printf("》记录第一页起始偏移量：%d\r\n", file_offset);
-				// 显示第一页（下翻模式）
+				// 显示第1页（下翻模式）
 				Novel_ShowOnePage(0);
+				// 保存第2页的起始偏移（提前计算）
+				if(max_saved_page < 1)
+				{
+					page_history[1] = file_offset;
+					max_saved_page = 1;
+				}
 			}
 			else
 			{
@@ -272,8 +346,8 @@ int main(void)
 			}
 		}
 
-		// 保留原KEY_LEFT功能（测试用）
-		if(waitKey == KEY_LEFT)
+		// KEY_DOWN：测试显示功能（你的新映射）
+		if(waitKey == KEY_DOWN)
 		{	
 			Paint_Clear(WHITE);
 			uint16_t actual_used_len = EPD_ShowMixedString(0,0,ReadBuffer,FONT_24X24,24,BLACK);
@@ -282,7 +356,7 @@ int main(void)
 			EPD_PartUpdate();
 		}		
 		
-		// KEY_RIGHT：翻到下一页
+		// KEY_RIGHT：翻到下一页（核心修复）
 		if(waitKey == KEY_RIGHT)
 		{
 			if(!is_file_open)
@@ -296,52 +370,67 @@ int main(void)
 				continue;
 			}
 			
-			// 记录当前页起始位置
-			if(history_idx < PAGE_HISTORY_MAX)
+			// 核心：下翻页=页数+1
+			u8 next_page = current_page + 1;
+			if(next_page >= PAGE_HISTORY_MAX)
 			{
-				page_history[history_idx++] = file_offset; 
-				printf("》记录第%d页起始偏移量：%d\r\n", history_idx, file_offset);
-			}
-			else
-			{
-				// 历史数组满，循环覆盖最旧的记录
-				for(u8 i=1; i<PAGE_HISTORY_MAX; i++)
-				{
-					page_history[i-1] = page_history[i];
-				}
-				page_history[PAGE_HISTORY_MAX-1] = file_offset;
+				printf("！！历史页数已达上限（%d页）\r\n", PAGE_HISTORY_MAX);
+				continue;
 			}
 			
-			// 显示下一页（下翻模式）
+			// 步骤1：设置当前页的起始偏移（从历史数组读取）
+			file_offset = page_history[next_page];
+			leftover_byte = 0;
+			has_leftover = 0;
+			is_file_end = 0;
+			
+			// 步骤2：显示当前页
 			Novel_ShowOnePage(0);
+			
+			// 步骤3：提前计算并保存下一页的起始偏移
+			if(next_page + 1 <= PAGE_HISTORY_MAX - 1)
+			{
+				page_history[next_page + 1] = file_offset;
+				if(next_page + 1 > max_saved_page)
+				{
+					max_saved_page = next_page + 1;
+				}
+			}
+			
+			// 步骤4：更新当前页数
+			current_page = next_page;
+			printf("》翻到第%d页，当前页起始偏移：%lu，下一页起始偏移：%lu\r\n", 
+			       current_page+1, page_history[current_page], page_history[current_page+1]);
 		}
 
-		// KEY_DOWN：翻到上一页
-		if(waitKey == KEY_DOWN)
+		// KEY_LEFT：翻到上一页（核心修复）
+		if(waitKey == KEY_LEFT)
 		{
 			if(!is_file_open)
 			{
 				printf("！！请先按KEY_UP打开小说文件\r\n");
 				continue;
 			}
-			if(history_idx <= 1) 
+			// 核心：上翻页=页数-1，不能小于0（第1页）
+			if(current_page == 0) 
 			{
 				printf("！！已到小说开头，无法翻上一页\r\n");
 				continue;
 			}
 			
-			// 重置遗留字节（上翻页时不保留遗留）
+			// 步骤1：回退页数
+			current_page--;
+			
+			// 步骤2：设置当前页的起始偏移（从历史数组读取）
+			file_offset = page_history[current_page];
 			leftover_byte = 0;
 			has_leftover = 0;
+			is_file_end = 0;
 			
-			// 回退索引，恢复上一页起始位置
-			history_idx--; 
-			file_offset = page_history[history_idx-1]; 
-			is_file_end = 0; 
-			
-			printf("》翻到上一页，恢复起始偏移量：%d\r\n",file_offset);
-			// 显示上一页（上翻模式）
+			// 步骤3：显示当前页
 			Novel_ShowOnePage(1);
+			
+			printf("》翻到第%d页，起始偏移：%lu\r\n", current_page+1, file_offset);
 		}
 	}
 }
