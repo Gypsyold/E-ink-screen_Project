@@ -233,6 +233,7 @@ static void app_show_file(const char *sd_path)
         return;
     }
     DBG_Fmt("    %lu bytes\r\n\r\n", (unsigned long)f_size(&fp));
+    BM_SetLast(sd_path);    /* 主页"继续阅读"依赖此记录 */
 
     DBG_Print("[3] EPD init...\r\n");
     epd_wake();
@@ -403,7 +404,11 @@ static void app_file_browser(const char *dir_path)
     DBG_Fmt("Total: %d files\r\n\r\n", (int)s_file_count);
 
     /* 清除书签表中已不存在的孤立条目（SD 文件被删除后自动回收槽位）*/
-    BM_Sweep("0:/", (const char *)s_filenames, MAX_NAME, s_file_count);
+    {
+        char sweep_pfx[32u];
+        snprintf(sweep_pfx, sizeof(sweep_pfx), "%s/", dir_path);
+        BM_Sweep(sweep_pfx, (const char *)s_filenames, MAX_NAME, s_file_count);
+    }
 
     if (s_file_count == 0u) {
         DBG_Print("No files. Exit.\r\n");
@@ -425,7 +430,15 @@ static void app_file_browser(const char *dir_path)
     for (;;) {
         KeyMsg_t msg;
         osMessageQueueGet(g_key_queue, &msg, 0u, osWaitForever);
-        if (msg.evt != KEY_EVT_SHORT) continue;
+
+        /* K4 长按：返回主页 */
+        if (msg.id == KEY4 && msg.evt == KEY_EVT_LONG) {
+            DBG_Print("[Browser] K4 long: back to home\r\n");
+            epd_cmd(EPD_CMD_SLEEP, NULL);
+            return;
+        }
+
+        if (msg.evt != KEY_EVT_SHORT) continue;    /* 其余按键只响应单击 */
 
         switch (msg.id) {
 
@@ -457,7 +470,7 @@ static void app_file_browser(const char *dir_path)
             {
                 DBG_Fmt("[Open] %s\r\n", s_filenames[selected]);
                 char path[MAX_NAME + 4u];
-                snprintf(path, sizeof(path), "0:/%s", s_filenames[selected]);
+                snprintf(path, sizeof(path), "%s/%s", dir_path, s_filenames[selected]);
 
                 app_show_file(path);   /* 阅读器内部处理 KEY1/KEY2/KEY4，KEY4 按下后返回 */
 
@@ -477,15 +490,155 @@ static void app_file_browser(const char *dir_path)
 }
 
 /* ================================================================
+ * 主页屏幕
+ *
+ * 启动后立刻全刷加载画面，随后挂载 SD 获取最近阅读信息，
+ * 再次全刷显示主界面。
+ *   KEY2 = 继续阅读上次文件（有记录时）
+ *   KEY1 / KEY4 = 进入书架（文件浏览器）
+ * ================================================================ */
+static void app_home_screen(const char *dir_path)
+{
+    DBG_Print("\r\n================================\r\n");
+    DBG_Print("  app_home_screen\r\n");
+    DBG_Print("================================\r\n\r\n");
+
+    /* 立即显示加载画面，不等 SD */
+    epd_wake();
+    GUI_ShowText(92u,  32u, (uint8_t *)"Sprite's Lover", FONT_16X16, GUI_BLACK);
+    GUI_ShowText(100u, 64u, (uint8_t *)"E-Ink Reader",   FONT_16X16, GUI_BLACK);
+    GUI_ShowText(108u, 96u, (uint8_t *)"Loading...",     FONT_16X16, GUI_BLACK);
+    epd_cmd(EPD_CMD_DISP_FULL, s_frame);
+
+    /* 从书签 RAM 缓存读取最近文件路径（BM_Init 已在 App_Task 预加载）*/
+    char     last_path[60u] = {0};
+    uint32_t last_off       = 0u;
+    uint32_t file_size      = 0u;
+    uint8_t  has_last       = 0u;
+    uint8_t  sd_ok          = 0u;
+
+    BM_GetLast(last_path, (uint8_t)sizeof(last_path));
+    if (last_path[0] != '\0') {
+        last_off = BM_Load(last_path);
+        has_last = 1u;
+        DBG_Fmt("[HOME] Last: %s\r\n", last_path);
+        DBG_Fmt("[HOME] Saved off=%lu\r\n", (unsigned long)last_off);
+    } else {
+        DBG_Print("[HOME] No last file\r\n");
+    }
+
+    /* 挂载 SD：获取文件大小以计算进度，同时验证文件仍存在 */
+    DBG_Print("[HOME] Mount SD...\r\n");
+    if (SD_Mount() == SD_OK) {
+        sd_ok = 1u;
+        DBG_Print("    OK\r\n");
+        if (has_last) {
+            FIL fp;
+            if (f_open(&fp, last_path, FA_READ) == FR_OK) {
+                file_size = (uint32_t)f_size(&fp);
+                f_close(&fp);
+                DBG_Fmt("    file size=%lu B\r\n", (unsigned long)file_size);
+            } else {
+                DBG_Print("    f_open FAIL (file deleted?)\r\n");
+                has_last = 0u;
+            }
+        }
+        SD_Unmount();
+    } else {
+        DBG_Print("    FAIL\r\n");
+    }
+
+    /* 渲染主界面 */
+    Canvas_Clear(GUI_WHITE);
+    GUI_ShowText(92u,  0u,  (uint8_t *)"Sprite's Lover", FONT_16X16, GUI_BLACK);
+    GUI_ShowText(100u, 16u, (uint8_t *)"E-Ink Reader",   FONT_16X16, GUI_BLACK);
+
+    char line[80u];
+    if (has_last) {
+        /* 提取文件名：去路径前缀，去扩展名 */
+        const char *fname = last_path;
+        const char *sl    = strrchr(last_path, '/');
+        if (sl != NULL) fname = sl + 1;
+
+        char name_buf[60u];
+        strncpy(name_buf, fname, sizeof(name_buf) - 1u);
+        name_buf[sizeof(name_buf) - 1u] = '\0';
+        char *dot = strrchr(name_buf, '.');
+        if (dot != NULL) *dot = '\0';
+
+        /* 进度：乘以 100000 再整除，得到带三位小数的百分比
+         * 例：offset=1549, size=735926 → 210 → "0.210%" */
+        uint32_t pct1000 = (file_size > 0u)
+                         ? (uint32_t)((uint64_t)last_off * 100000u / (uint64_t)file_size)
+                         : 0u;
+        DBG_Fmt("[HOME] Progress: %lu.%03lu%%\r\n",
+                (unsigned long)(pct1000 / 1000u),
+                (unsigned long)(pct1000 % 1000u));
+
+        GUI_ShowText(0u, 48u, (uint8_t *)"Last:",   FONT_16X16, GUI_BLACK);
+        GUI_ShowText(0u, 64u, (uint8_t *)name_buf,  FONT_16X16, GUI_BLACK);
+        snprintf(line, sizeof(line), "Progress: %lu.%03lu%%",
+                 (unsigned long)(pct1000 / 1000u),
+                 (unsigned long)(pct1000 % 1000u));
+        GUI_ShowText(0u, 80u, (uint8_t *)line, FONT_16X16, GUI_BLACK);
+    } else {
+        GUI_ShowText(0u, 48u, (uint8_t *)"Welcome!",    FONT_16X16, GUI_BLACK);
+        GUI_ShowText(0u, 64u, (uint8_t *)"No history.", FONT_16X16, GUI_BLACK);
+    }
+
+    /* 状态信息（倒数第二行 y=112）*/
+    snprintf(line, sizeof(line), "SD:%s  FATFS:OK  GBK", sd_ok ? "OK" : "ERR");
+    GUI_ShowText(0u, 112u, (uint8_t *)line, FONT_16X16, GUI_BLACK);
+
+    /* 按键提示（最后一行 y=128）*/
+    if (has_last) {
+        GUI_ShowText(0u, (uint16_t)(PAGE_LINES * LINE_H),
+                     (uint8_t *)"K1/K2:List  K3:Open", FONT_16X16, GUI_BLACK);
+    } else {
+        GUI_ShowText(0u, (uint16_t)(PAGE_LINES * LINE_H),
+                     (uint8_t *)"K1/K2:List", FONT_16X16, GUI_BLACK);
+    }
+    epd_cmd(EPD_CMD_DISP_FULL, s_frame);
+
+    DBG_Print("[HOME] Ready. Waiting key...\r\n\r\n");
+
+    /* 按键事件循环 */
+    for (;;) {
+        KeyMsg_t msg;
+        osMessageQueueGet(g_key_queue, &msg, 0u, osWaitForever);
+        if (msg.evt != KEY_EVT_SHORT) continue;
+
+        switch (msg.id) {
+        case KEY1:
+        case KEY2:
+            DBG_Print("[HOME] K1/K2: to browser\r\n");
+            epd_cmd(EPD_CMD_SLEEP, NULL);
+            app_file_browser(dir_path);
+            return;
+        case KEY3:
+            if (has_last) {
+                DBG_Print("[HOME] K3: open last file\r\n");
+                epd_cmd(EPD_CMD_SLEEP, NULL);
+                app_show_file(last_path);
+                /* 阅读器 K4 退出后进文件列表，而非回主页 */
+                app_file_browser(dir_path);
+                return;
+            }
+            break;
+        default:
+            break;
+        }
+    }
+}
+
+/* ================================================================
  * App_Task — 由 main.c 的 StartDefaultTask 调用
  * ================================================================ */
 void App_Task(void *arg)
 {
     (void)arg;
-    BM_Init();              /* 从 Flash 预加载书签表到 RAM */
-    app_file_browser("0:/");
-    /* app_file_browser 正常情况下不返回；若返回则在此挂起 */
+    BM_Init();          /* 从 Flash 预加载书签表及最近文件路径到 RAM */
     for (;;) {
-        osDelay(1000u);
+        app_home_screen("0:/ebooks");
     }
 }

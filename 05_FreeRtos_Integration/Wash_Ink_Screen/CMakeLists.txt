@@ -64,7 +64,9 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/User/Drivers/Key
     ${CMAKE_CURRENT_SOURCE_DIR}/User/Drivers/W25Q128
     ${CMAKE_CURRENT_SOURCE_DIR}/User/Drivers/EPD
+    ${CMAKE_CURRENT_SOURCE_DIR}/User/Drivers/SD
     ${CMAKE_CURRENT_SOURCE_DIR}/User/DriverTests
+    ${CMAKE_CURRENT_SOURCE_DIR}/User/App
 )
 
 # Add project symbols (macros)

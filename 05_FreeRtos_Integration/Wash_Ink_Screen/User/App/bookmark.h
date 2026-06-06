@@ -34,4 +34,10 @@ void     BM_Sweep(const char *dir_prefix,
                   uint8_t     name_stride,
                   uint8_t     count);
 
+/* 记录 / 读取最近打开的文件路径
+ * 存储在书签扇区末尾空闲区（offset 3200，60 字节）
+ * 主页用于显示"继续阅读"及进度 */
+void     BM_SetLast(const char *path);
+void     BM_GetLast(char *out, uint8_t out_size);
+
 #endif /* BOOKMARK_H */

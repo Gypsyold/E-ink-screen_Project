@@ -55,4 +55,11 @@ extern SPI_HandleTypeDef hspi1;      /* defined in main.c by CubeMX */
 #define EPD_BUSY_ACTIVE GPIO_PIN_SET /* HIGH = busy */
 extern SPI_HandleTypeDef hspi2;      /* defined in main.c by CubeMX */
 
+/* ================================================================
+ * SD Card — SDIO 4-bit，卡检测 = PD3（上拉输入，低电平=已插入）
+ * ================================================================ */
+#define SD_DET_PORT     GPIOD
+#define SD_DET_PIN      GPIO_PIN_3
+extern SD_HandleTypeDef hsd;         /* defined in main.c by CubeMX */
+
 #endif /* BOARD_BSP_H */

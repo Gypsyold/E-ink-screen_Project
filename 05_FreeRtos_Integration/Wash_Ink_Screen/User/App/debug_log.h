@@ -13,7 +13,7 @@
  *   任意任务：DBG_Print("xxx\r\n") / DBG_Fmt("val=%d\r\n", v)
  */
 
-#define DBG_ENABLE  1   /* 1=开启调试输出，0=关闭 */
+#define DBG_ENABLE   0  /* 1=开启调试输出，0=关闭 */
 
 #if DBG_ENABLE
 void DBG_TaskStart(void);

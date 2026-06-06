@@ -112,3 +112,30 @@ void BM_Sweep(const char *dir_prefix,
         W25Q128_Write(s_buf, BM_FLASH_ADDR, W25Q128_SECTOR_SIZE);
     }
 }
+
+/* ================================================================
+ * 最近文件路径（扇区内 offset 3200 处，50×64B = 3200B 之后的空闲区）
+ * ================================================================ */
+#define BM_LAST_OFFSET  3200u   /* 50 条记录 × 64B = 3200B，其后存最近路径 */
+
+/* 记录最近打开的文件路径；路径相同时跳过写入，减少 Flash 擦写次数 */
+void BM_SetLast(const char *path)
+{
+    char *slot = (char *)(s_buf + BM_LAST_OFFSET);
+    if ((uint8_t)slot[0] != 0xFFu && strncmp(slot, path, 59u) == 0) return;
+    strncpy(slot, path, 59u);
+    slot[59u] = '\0';
+    W25Q128_Write(s_buf, BM_FLASH_ADDR, W25Q128_SECTOR_SIZE);
+}
+
+/* 读取最近打开的文件路径；Flash 未写过时输出空字符串 */
+void BM_GetLast(char *out, uint8_t out_size)
+{
+    const char *slot = (const char *)(s_buf + BM_LAST_OFFSET);
+    if (slot[0] == '\0' || (uint8_t)slot[0] == 0xFFu) {
+        out[0] = '\0';
+        return;
+    }
+    strncpy(out, slot, (size_t)(out_size - 1u));
+    out[out_size - 1u] = '\0';
+}

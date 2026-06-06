@@ -75,6 +75,8 @@ void Error_Handler(void);
 #define EPD_CS_GPIO_Port GPIOB
 #define EPD_BUSY_Pin GPIO_PIN_6
 #define EPD_BUSY_GPIO_Port GPIOC
+#define SD_DET_Pin GPIO_PIN_3
+#define SD_DET_GPIO_Port GPIOD
 
 /* USER CODE BEGIN Private defines */
 

@@ -1,66 +1,149 @@
 #include "epd_test.h"
 #include "epd.h"
+#include "epd_gui.h"
+#include "board_bsp.h"
 #include "delay_bsp.h"
+#include <string.h>
+#include <stdarg.h>
+#include <stdio.h>
 
-/*
- * EPD test suite.
- *
- * Test 1 â€” Normal init + clear + full refresh
- *   Verifies: HW_Reset, SPI cmd/data path, DMA fill, Update timing.
- *   Expected: screen turns fully white.
- *
- * Test 2 â€” Display solid black
- *   Verifies: DMA frame transfer (5624 bytes), EPD_Display API.
- *   Expected: screen turns fully black.
- *
- * Test 3 â€” Fast init + white clear
- *   Verifies: EPD_FastInit / EPD_FastUpdate sequence.
- *   Expected: screen turns white quickly (no full waveform cycle).
- *
- * Test 4 â€” Deep sleep
- *   Verifies: EPD_DeepSleep command accepted (no hardfault).
- *   After sleep the display must be power-cycled or HW_Reset before reuse.
- */
+/* Ö¡»º³å£¨¾²Ì¬·ÖÅä£¬±ÜÃâÕ»Òç³ö£© */
+static uint8_t s_frame[EPD_FRAME_BYTES];
 
-/* All-black frame (5624 bytes of 0x00); in flash, DMA-accessible on STM32F407 */
-static const uint8_t s_black_frame[EPD_FRAME_BYTES];   /* zero-init = black */
-
-/* All-white frame (all 0xFF) â€” generated on first use to save flash */
-static uint8_t s_white_frame[EPD_FRAME_BYTES];
-static uint8_t s_white_frame_ready = 0;
-
-static void prepare_white_frame(void)
+/* ================================================================
+ * UART µ÷ÊÔÊä³ö
+ * ================================================================ */
+static void uart_print(const char *str)
 {
-    if (!s_white_frame_ready) {
-        for (uint16_t i = 0; i < EPD_FRAME_BYTES; i++)
-            s_white_frame[i] = EPD_WHITE;
-        s_white_frame_ready = 1;
-    }
+    HAL_UART_Transmit(&huart1, (uint8_t *)str, (uint16_t)strlen(str), HAL_MAX_DELAY);
 }
 
-/* ------------------------------------------------------------------ */
+static void uart_logfmt(const char *fmt, ...)
+{
+    char buf[128];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(buf, sizeof(buf), fmt, args);
+    va_end(args);
+    uart_print(buf);
+}
 
+/* ================================================================
+ * EPD_Test ¡ª EPD ÏÔÊ¾²âÊÔ£¨ÔÚ FreeRTOS ÈÎÎñÖÐµ÷ÓÃ£©
+ * ================================================================ */
 void EPD_Test(void)
 {
-    /* --- Test 1: full init, clear to white, refresh --- */
+    uart_print("\r\n");
+    uart_print("================================\r\n");
+    uart_print("  EPD ÖÐÎÄÏÔÊ¾²âÊÔ\r\n");
+    uart_print("================================\r\n\r\n");
+
+    /* ---- ³õÊ¼»¯»­²¼ ---- */
+    uart_print("[1] ³õÊ¼»¯»­²¼...\r\n");
+    Canvas_Init(s_frame, 0, GUI_WHITE);
+    Canvas_Clear(GUI_WHITE);
+    uart_print("    Íê³É\r\n\r\n");
+
+    /* ---- ³õÊ¼»¯ EPD ---- */
+    uart_print("[2] ³õÊ¼»¯ EPD£¨µÈ´ý BUSY ÐÅºÅ£©...\r\n");
     EPD_Init();
+    uart_print("    Íê³É\r\n\r\n");
+
+    /* ---- ÇåÆÁ ---- */
+    uart_print("[3] ÇåÆÁÎª°×É«...\r\n");
     EPD_Display_Clear();
     EPD_Update();
-    Delay_BSP_ms(2000);   /* observe: all white */
+    Delay_BSP_ms(2000);
+    uart_print("    Íê³É\r\n\r\n");
 
-    /* --- Test 2: display solid black --- */
-    EPD_Display(s_black_frame);
+    /* ---- ASCII ÏÔÊ¾ ---- */
+    uart_print("[4] »æÖÆ ASCII ×Ö·û´®...\r\n");
+    Canvas_Clear(GUI_WHITE);
+    GUI_ShowString( 0,  0, "EPD Driver Test",  FONT_16X16, GUI_BLACK);
+    GUI_ShowString( 0, 20, "Font: 8x16 ASCII", FONT_16X16, GUI_BLACK);
+    GUI_ShowString( 0, 40, "0123456789",       FONT_16X16, GUI_BLACK);
+    GUI_ShowString( 0, 60, "12x24: ABCDE",     FONT_24X24, GUI_BLACK);
+    EPD_Display(s_frame);
     EPD_Update();
-    Delay_BSP_ms(2000);   /* observe: all black */
+    Delay_BSP_ms(3000);
+    uart_print("    Íê³É\r\n\r\n");
 
-    /* --- Test 3: fast init, clear to white --- */
-    prepare_white_frame();
-    EPD_FastInit();
-    EPD_Display(s_white_frame);
-    EPD_FastUpdate();
-    Delay_BSP_ms(1000);   /* observe: all white (fast waveform) */
+    /* ---- 16¡Á16 ÖÐÎÄÏÔÊ¾ ---- */
+    uart_print("[5] »æÖÆ 16x16 ÖÐÎÄ£¨´Ó Flash ¶Á×ÖÄ££©...\r\n");
+    Canvas_Clear(GUI_WHITE);
 
-    /* --- Test 4: enter deep sleep --- */
+    /* "Ë®Ä«ÆÁ²âÊÔ" GBK ±àÂë */
+    static const uint8_t msg16[] = {
+        0xCB, 0xAE,   /* Ë® */
+        0xC4, 0xEA,   /* Ä« */
+        0xC6, 0xC1,   /* ÆÁ */
+        0xB2, 0xE2,   /* ²â */
+        0xCA, 0xD4,   /* ÊÔ */
+        0x00
+    };
+    uart_logfmt("    Flash »ùÖ·: 0x%06lX\r\n", (unsigned long)W25Q128_FONT16_ADDR);
+    GUI_ShowChineseStr(0, 0, msg16, FONT_16X16, GUI_BLACK);
+    GUI_ShowString(0, 20, "16x16 GBK OK", FONT_16X16, GUI_BLACK);
+    EPD_Display(s_frame);
+    EPD_Update();
+    Delay_BSP_ms(3000);
+    uart_print("    Íê³É\r\n\r\n");
+
+    /* ---- 24¡Á24 ÖÐÎÄÏÔÊ¾ ---- */
+    uart_print("[6] »æÖÆ 24x24 ÖÐÎÄ£¨´Ó Flash ¶Á×ÖÄ££©...\r\n");
+    Canvas_Clear(GUI_WHITE);
+
+    /* "ÏÔÊ¾" GBK ±àÂë */
+    static const uint8_t msg24[] = {
+        0xCF, 0xD4,   /* ÏÔ */
+        0xCA, 0xBE,   /* Ê¾ */
+        0x00
+    };
+    uart_logfmt("    Flash »ùÖ·: 0x%06lX\r\n", (unsigned long)W25Q128_FONT24_ADDR);
+    GUI_ShowChineseStr(0, 0, msg24, FONT_24X24, GUI_BLACK);
+    GUI_ShowString(0, 28, "24x24 GBK OK", FONT_16X16, GUI_BLACK);
+    EPD_Display(s_frame);
+    EPD_Update();
+    Delay_BSP_ms(3000);
+    uart_print("    Íê³É\r\n\r\n");
+
+    /* ---- »ìºÏÏÔÊ¾£¨ASCII + ºº×ÖÍ¬Ò»º¯Êý£© ---- */
+    uart_print("[7] »ìºÏÏÔÊ¾£¨GUI_ShowText£©...\r\n");
+    Canvas_Clear(GUI_WHITE);
+
+    /* µÚÒ»ÐÐ 16¡Á16£º"Ë®Ä«ÆÁ-EPD" */
+    static const uint8_t mix16[] = {
+        0xCB, 0xAE,          /* Ë® */
+        0xC4, 0xEA,          /* Ä« */
+        0xC6, 0xC1,          /* ÆÁ */
+        '-', 'E', 'P', 'D',
+        0x00
+    };
+    /* µÚ¶þÐÐ 24¡Á24£º"ÏÔÊ¾ 24x24" */
+    static const uint8_t mix24[] = {
+        0xCF, 0xD4,          /* ÏÔ */
+        0xCA, 0xBE,          /* Ê¾ */
+        ' ', '2', '4', 'x', '2', '4',
+        0x00
+    };
+
+    GUI_ShowText(  0,  0, "Ë®Ä«ÆÁ-EPD", FONT_16X16, GUI_BLACK);
+    GUI_ShowText(  0, 30, mix24, FONT_24X24, GUI_BLACK);
+
+    EPD_Display(s_frame);
+    EPD_Update();
+    Delay_BSP_ms(3000);
+    uart_print("    Íê³É\r\n\r\n");
+
+    /* ---- Éî¶ÈË¯Ãß ---- */
+    uart_print("[8] ½øÈëÉî¶ÈË¯Ãß\r\n");
     EPD_DeepSleep();
-    /* EPD is now in deep sleep; further operations require EPD_Init() again */
+
+    uart_print("\r\n================================\r\n");
+    uart_print("  ²âÊÔ½áÊø\r\n");
+    uart_print("================================\r\n");
+
+    for (;;) {
+        Delay_BSP_ms(1000);
+    }
 }

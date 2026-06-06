@@ -197,6 +197,19 @@ void EPD_Display(const uint8_t *image)
     epd_send_buffer_dma(image, EPD_FRAME_BYTES);
 }
 
+void EPD_DisplayPrev(const uint8_t *image)
+{
+    EPD_WriteCmd(0x26);
+    epd_send_buffer_dma(image, EPD_FRAME_BYTES);
+}
+
+/* Set border waveform for partial mode. No hardware reset — call before EPD_PartUpdate. */
+void EPD_PartInit(void)
+{
+    EPD_WriteCmd(0x3C);
+    EPD_WriteData(0x80);  /* border: VCOM floating, prevents border flash in partial mode */
+}
+
 void EPD_Display_Clear(void)
 {
     EPD_WriteCmd(0x3C);

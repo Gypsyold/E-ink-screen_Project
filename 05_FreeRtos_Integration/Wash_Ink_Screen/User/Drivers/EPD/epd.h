@@ -47,9 +47,11 @@ void EPD_Init(void);          /* full init, normal refresh mode */
 void EPD_FastInit(void);      /* fast refresh mode              */
 
 /* ---- Display operations (DMA, call from task) ---- */
-void EPD_Display(const uint8_t *image);   /* push 5624-byte frame to RAM 0x24 */
-void EPD_Display_Clear(void);             /* both RAM banks → white            */
-void EPD_Clear_R26H(void);               /* clear RAM 0x26 (partial refresh prep) */
+void EPD_Display(const uint8_t *image);       /* push 5624-byte frame to RAM 0x24          */
+void EPD_DisplayPrev(const uint8_t *image);   /* push 5624-byte frame to RAM 0x26 (prev)   */
+void EPD_Display_Clear(void);                 /* both RAM banks → white                    */
+void EPD_Clear_R26H(void);                    /* clear RAM 0x26 only                       */
+void EPD_PartInit(void);                      /* set border for partial mode (no HW reset) */
 
 /* ---- Power ---- */
 void EPD_DeepSleep(void);
