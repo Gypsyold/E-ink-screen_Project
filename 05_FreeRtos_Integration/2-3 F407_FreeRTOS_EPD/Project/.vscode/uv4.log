@@ -1,7 +1,0 @@
-*** Using Compiler 'V5.06 update 7 (build 960)', folder: 'E:\Keil\Keil_v5\Keil5_MDK\ARM\ARMCC\Bin'
-Build target 'Target_1'
-compiling EPD_GUI.c...
-linking...
-Program Size: Code=20560 RO-data=33860 RW-data=200 ZI-data=84416  
-"..\Output\project.axf" - 0 Error(s), 0 Warning(s).
-Build Time Elapsed:  00:00:02
