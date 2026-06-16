@@ -1,4 +1,5 @@
 #include "wifi_task.h"
+#include "ipc.h"
 #include "board_bsp.h"
 #include "sd_card.h"
 #include "fatfs.h"
@@ -29,6 +30,8 @@ static SemaphoreHandle_t s_sem = NULL;  /* 二值信号量：ISR 通知 Task 有
 #define CMD_FILENAME    0x01u
 #define CMD_DATA        0x02u
 #define CMD_EOF         0x03u
+#define CMD_DELETE      0x04u
+#define CMD_SCAN        0x05u
 #define ACK_OK          0xAAu
 #define ACK_FAIL        0xFFu
 #define FRAME_DATA_MAX  512u
@@ -54,6 +57,20 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
     BaseType_t woken = pdFALSE;
     xSemaphoreGiveFromISR(s_sem, &woken);
     portYIELD_FROM_ISR(woken);
+}
+
+/* ================================================================
+ * HAL UART 错误回调（覆盖 HAL 弱符号）
+ * 高波特率下 FreeRTOS 临界区可能延迟 ISR，导致 ORE（接收溢出）。
+ * HAL 默认实现不重启接收，必须在这里手动恢复，否则 UART 永久失聋。
+ * ================================================================ */
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
+{
+    if (huart->Instance != USART2) return;
+    /* 清除错误标志并重新挂起接收 */
+    __HAL_UART_CLEAR_OREFLAG(huart);
+    HAL_UART_AbortReceive(huart);
+    HAL_UART_Receive_IT(&huart2, (uint8_t *)&s_rx1, 1u);
 }
 
 /* ================================================================
@@ -107,6 +124,9 @@ static void send_ack(uint8_t result)
 static uint8_t s_data_buf[FRAME_DATA_MAX];  /* BSS，不占任务栈 */
 static FIL     s_fp;                         /* BSS，FIL 内含 512B 扇区缓冲 */
 static char    s_filepath[80u];              /* BSS */
+static DIR     s_scan_dir;                   /* BSS，SCAN 目录句柄 */
+static FILINFO s_scan_fno;                   /* BSS，SCAN 文件信息（含 LFN） */
+static uint8_t s_scan_buf[2048u];            /* BSS，SCAN 输出缓冲 */
 
 static void wifi_task_fn(void *arg)
 {
@@ -117,18 +137,9 @@ static void wifi_task_fn(void *arg)
 
     DBG_Print("[WiFi] Task ready, waiting frames...\r\n");
 
-    uint8_t file_open  = 0u;
-    uint8_t self_tested = 0u;  /* 上电自检标志，只跑一次 */
+    uint8_t file_open    = 0u;  /* 1 = 正在下载（持有 g_sd_mutex） */
 
     for (;;) {
-        /* 上电后第一次进入循环：发自检帧，验证 UART2 TX/RX 环回 */
-        if (!self_tested) {
-            self_tested = 1u;
-            uint8_t st[] = {0xAAu, 0x55u, 0xFEu, 0x00u, 0x00u};
-            HAL_UART_Transmit(&huart2, st, sizeof(st), 100u);
-            DBG_Print("[WiFi] Self-test frame sent (AA 55 FE 00 00)\r\n");
-        }
-
         /* ── 等待帧头第一字节 0xAA（永久阻塞）── */
         uint8_t b;
         read_bytes(&b, 1u, 0u);
@@ -156,10 +167,11 @@ static void wifi_task_fn(void *arg)
         switch (cmd) {
 
         case CMD_FILENAME:
-            /* 关闭上一次未完成的文件 */
+            /* 若上次未完成，先关闭（同时持有互斥量，一并释放）*/
             if (file_open) {
                 f_close(&s_fp);
                 SD_Unmount();
+                osMutexRelease(g_sd_mutex);
                 file_open = 0u;
             }
             s_data_buf[len] = '\0';
@@ -167,18 +179,26 @@ static void wifi_task_fn(void *arg)
                      "0:/ebooks/%s", (char *)s_data_buf);
             DBG_Fmt("[WiFi] New file: %s\r\n", s_filepath);
 
+            /* 下载会话开始：获取 SD 互斥量（最多等 5 秒）*/
+            if (osMutexAcquire(g_sd_mutex, 5000u) != osOK) {
+                DBG_Print("[WiFi] SD mutex timeout (FILENAME)\r\n");
+                send_ack(ACK_FAIL);
+                break;
+            }
             if (SD_Mount() != SD_OK) {
                 DBG_Print("[WiFi] SD mount fail\r\n");
+                osMutexRelease(g_sd_mutex);
                 send_ack(ACK_FAIL);
                 break;
             }
             if (f_open(&s_fp, s_filepath, FA_WRITE | FA_CREATE_ALWAYS) != FR_OK) {
                 DBG_Print("[WiFi] f_open fail\r\n");
                 SD_Unmount();
+                osMutexRelease(g_sd_mutex);
                 send_ack(ACK_FAIL);
                 break;
             }
-            file_open = 1u;
+            file_open = 1u;   /* 互斥量保持到 CMD_EOF */
             send_ack(ACK_OK);
             break;
 
@@ -200,11 +220,94 @@ static void wifi_task_fn(void *arg)
                 f_sync(&s_fp);
                 f_close(&s_fp);
                 SD_Unmount();
+                osMutexRelease(g_sd_mutex);   /* 下载会话结束，释放互斥量 */
                 file_open = 0u;
                 DBG_Fmt("[WiFi] Saved: %s\r\n", s_filepath);
                 send_ack(ACK_OK);
             } else {
                 send_ack(ACK_FAIL);
+            }
+            break;
+
+        case CMD_SCAN:
+            /* 扫描 /ebooks/ 目录
+             * SD 忙时发 3 字节 ACK_FAIL（ESP32 协议已适配）；
+             * SD 可用时发 5 字节扩展 ACK + 数据 */
+            {
+                uint16_t scan_len = 0u;
+                /* 尝试获取互斥量；SD 正被读书任务使用时立即放弃，返回空扫描 */
+                if (osMutexAcquire(g_sd_mutex, 50u) != osOK) {
+                    DBG_Print("[WiFi] Scan: SD busy\r\n");
+                    send_ack(ACK_FAIL);   /* 3 字节失败回复，ESP32 跳过本次同步 */
+                    break;
+                }
+                if (SD_Mount() == SD_OK) {
+                    if (f_opendir(&s_scan_dir, "0:/ebooks") == FR_OK) {
+                        for (;;) {
+                            if (f_readdir(&s_scan_dir, &s_scan_fno) != FR_OK) break;
+                            if (s_scan_fno.fname[0] == '\0') break;
+                            if (s_scan_fno.fattrib & AM_DIR) continue;
+                            uint16_t nlen = (uint16_t)strlen(s_scan_fno.fname);
+                            if (scan_len + nlen + 1u > sizeof(s_scan_buf)) break;
+                            memcpy(s_scan_buf + scan_len, s_scan_fno.fname, nlen);
+                            scan_len += nlen;
+                            s_scan_buf[scan_len++] = '\0';
+                        }
+                        f_closedir(&s_scan_dir);
+                    }
+                    SD_Unmount();
+                }
+                osMutexRelease(g_sd_mutex);
+                /* 扫描完成：发扩展 ACK */
+                uint8_t scan_hdr[5] = {
+                    SOF0, SOF1, ACK_OK,
+                    (uint8_t)(scan_len & 0xFFu),
+                    (uint8_t)(scan_len >> 8u),
+                };
+                HAL_UART_Transmit(&huart2, scan_hdr, sizeof(scan_hdr), 200u);
+                if (scan_len > 0u) {
+                    HAL_UART_Transmit(&huart2, s_scan_buf, scan_len, 2000u);
+                }
+                DBG_Fmt("[WiFi] Scan: %u bytes\r\n", (unsigned)scan_len);
+            }
+            break;
+
+        case CMD_DELETE:
+            /* 关闭正在写入的文件（保护：不应同时下载和删除，但做防御）*/
+            if (file_open) {
+                f_close(&s_fp);
+                SD_Unmount();
+                osMutexRelease(g_sd_mutex);
+                file_open = 0u;
+            }
+            s_data_buf[len] = '\0';
+            {
+                char del_path[96];
+                snprintf(del_path, sizeof(del_path),
+                         "0:/ebooks/%s", (char *)s_data_buf);
+                DBG_Fmt("[WiFi] Delete: %s\r\n", del_path);
+                /* 等待 SD 空闲（最多 3 秒）*/
+                if (osMutexAcquire(g_sd_mutex, 3000u) != osOK) {
+                    DBG_Print("[WiFi] SD mutex timeout (DELETE)\r\n");
+                    send_ack(ACK_FAIL);
+                    break;
+                }
+                if (SD_Mount() != SD_OK) {
+                    DBG_Print("[WiFi] SD mount fail (delete)\r\n");
+                    osMutexRelease(g_sd_mutex);
+                    send_ack(ACK_FAIL);
+                    break;
+                }
+                FRESULT fr = f_unlink(del_path);
+                SD_Unmount();
+                osMutexRelease(g_sd_mutex);
+                if (fr == FR_OK || fr == FR_NO_FILE) {
+                    DBG_Fmt("[WiFi] Deleted OK (fr=%d)\r\n", (int)fr);
+                    send_ack(ACK_OK);
+                } else {
+                    DBG_Fmt("[WiFi] f_unlink fail fr=%d\r\n", (int)fr);
+                    send_ack(ACK_FAIL);
+                }
             }
             break;
 
@@ -218,7 +321,7 @@ static void wifi_task_fn(void *arg)
 
 static const osThreadAttr_t wifi_task_attrs = {
     .name       = "WiFiTask",
-    .stack_size = 512u,   /* 栈：局部变量很少，大块数据都在 BSS */
+    .stack_size = 2048u,  /* f_readdir + LFN heap + FatFS 内部需要较大栈空间 */
     .priority   = osPriorityBelowNormal,
 };
 

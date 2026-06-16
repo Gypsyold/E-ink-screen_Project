@@ -12,6 +12,14 @@
 #include <string.h>
 #include <stdio.h>
 
+/* SD 互斥量辅助宏（5 秒超时，失败时直接 return）*/
+#define SD_LOCK()  do { \
+    if (osMutexAcquire(g_sd_mutex, 5000u) != osOK) { \
+        DBG_Print("[App] SD mutex timeout\r\n"); return; \
+    } \
+} while (0)
+#define SD_UNLOCK() osMutexRelease(g_sd_mutex)
+
 /* ================================================================
  * 常量
  * ================================================================ */
@@ -218,9 +226,11 @@ static void app_show_file(const char *sd_path)
     DBG_Print("================================\r\n\r\n");
 
     DBG_Print("[1] Mount SD...\r\n");
+    SD_LOCK();
     SD_Err serr = SD_Mount();
     if (serr != SD_OK) {
         DBG_Fmt("    FAIL code=%d\r\n", (int)serr);
+        SD_UNLOCK();
         return;
     }
     DBG_Print("    OK\r\n");
@@ -230,6 +240,7 @@ static void app_show_file(const char *sd_path)
     if (f_open(&fp, sd_path, FA_READ) != FR_OK) {
         DBG_Print("    f_open FAIL\r\n");
         SD_Unmount();
+        SD_UNLOCK();
         return;
     }
     DBG_Fmt("    %lu bytes\r\n\r\n", (unsigned long)f_size(&fp));
@@ -350,6 +361,7 @@ file_exit:
 
     f_close(&fp);
     SD_Unmount();
+    SD_UNLOCK();   /* 释放 SD 互斥量，wifi_task 可以再次访问 SD */
     epd_cmd(EPD_CMD_SLEEP, NULL);
 
     DBG_Print("\r\n================================\r\n");
@@ -375,9 +387,11 @@ static void app_file_browser(const char *dir_path)
 
     /* 扫描 SD 卡文件列表 */
     DBG_Print("[1] Mount SD...\r\n");
+    SD_LOCK();
     SD_Err err = SD_Mount();
     if (err != SD_OK) {
         DBG_Fmt("    FAIL code=%d\r\n", (int)err);
+        SD_UNLOCK();
         return;
     }
     DBG_Print("    OK\r\n\r\n");
@@ -401,7 +415,20 @@ static void app_file_browser(const char *dir_path)
     }
 
     SD_Unmount();
+    SD_UNLOCK();
     DBG_Fmt("Total: %d files\r\n\r\n", (int)s_file_count);
+
+    /* 按文件名字母顺序排序（FAT 目录项顺序不等于下载顺序，删除后会复用旧槽位）*/
+    for (uint8_t i = 1u; i < s_file_count; i++) {
+        char tmp[MAX_NAME];
+        uint8_t j = i;
+        memcpy(tmp, s_filenames[i], MAX_NAME);
+        while (j > 0u && strcmp(s_filenames[j - 1u], tmp) > 0) {
+            memcpy(s_filenames[j], s_filenames[j - 1u], MAX_NAME);
+            j--;
+        }
+        memcpy(s_filenames[j], tmp, MAX_NAME);
+    }
 
     /* 清除书签表中已不存在的孤立条目（SD 文件被删除后自动回收槽位）*/
     {
@@ -529,23 +556,28 @@ static void app_home_screen(const char *dir_path)
 
     /* 挂载 SD：获取文件大小以计算进度，同时验证文件仍存在 */
     DBG_Print("[HOME] Mount SD...\r\n");
-    if (SD_Mount() == SD_OK) {
-        sd_ok = 1u;
-        DBG_Print("    OK\r\n");
-        if (has_last) {
-            FIL fp;
-            if (f_open(&fp, last_path, FA_READ) == FR_OK) {
-                file_size = (uint32_t)f_size(&fp);
-                f_close(&fp);
-                DBG_Fmt("    file size=%lu B\r\n", (unsigned long)file_size);
-            } else {
-                DBG_Print("    f_open FAIL (file deleted?)\r\n");
-                has_last = 0u;
+    if (osMutexAcquire(g_sd_mutex, 3000u) == osOK) {
+        if (SD_Mount() == SD_OK) {
+            sd_ok = 1u;
+            DBG_Print("    OK\r\n");
+            if (has_last) {
+                FIL fp;
+                if (f_open(&fp, last_path, FA_READ) == FR_OK) {
+                    file_size = (uint32_t)f_size(&fp);
+                    f_close(&fp);
+                    DBG_Fmt("    file size=%lu B\r\n", (unsigned long)file_size);
+                } else {
+                    DBG_Print("    f_open FAIL (file deleted?)\r\n");
+                    has_last = 0u;
+                }
             }
+            SD_Unmount();
+        } else {
+            DBG_Print("    FAIL\r\n");
         }
-        SD_Unmount();
+        osMutexRelease(g_sd_mutex);
     } else {
-        DBG_Print("    FAIL\r\n");
+        DBG_Print("[HOME] SD busy, skip size check\r\n");
     }
 
     /* 渲染主界面 */

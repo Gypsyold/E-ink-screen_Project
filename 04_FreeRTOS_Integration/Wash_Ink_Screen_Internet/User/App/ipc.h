@@ -44,6 +44,7 @@ typedef struct {
 extern osMessageQueueId_t g_key_queue;  /* KeyMsg_t，深度 8  */
 extern osMessageQueueId_t g_epd_queue;  /* EPDCmd_t，深度 2  */
 extern osSemaphoreId_t    g_epd_done;   /* 二值信号量         */
+extern osMutexId_t        g_sd_mutex;   /* SD 卡互斥量：覆盖 Mount→操作→Unmount 会话 */
 
 void IPC_Init(void);
 
