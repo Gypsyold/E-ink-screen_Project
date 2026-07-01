@@ -1,0 +1,154 @@
+/* 刷新栏 */
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 16rpx 32rpx;
+  background: #fff;
+  border-bottom: 1rpx solid #eee;
+}
+
+.refresh-btn {
+  font-size: 28rpx;
+  color: #1a73e8;
+  padding: 8rpx 16rpx;
+}
+
+/* 空状态 */
+.state-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100rpx 0;
+}
+
+.state-icon {
+  font-size: 80rpx;
+  margin-bottom: 24rpx;
+}
+
+.state-text {
+  font-size: 28rpx;
+  color: #999;
+}
+
+/* 队列列表 */
+.queue-list {
+  flex: 1;
+  padding: 20rpx 24rpx;
+}
+
+.queue-item {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 28rpx 24rpx;
+  margin-bottom: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.06);
+}
+
+.item-left {
+  flex: 1;
+  margin-right: 20rpx;
+  overflow: hidden;
+}
+
+.item-title {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1a1a2e;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-time {
+  display: block;
+  font-size: 22rpx;
+  color: #999;
+  margin-top: 8rpx;
+}
+
+/* 状态徽章 */
+.status-badge {
+  flex-shrink: 0;
+  padding: 8rpx 20rpx;
+  border-radius: 24rpx;
+  font-size: 24rpx;
+}
+
+.status-pending {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.status-downloading {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.status-done {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-cancelled {
+  background: #f5f5f5;
+  color: #9e9e9e;
+}
+
+/* 取消按钮 */
+.cancel-row {
+  margin-top: 14rpx;
+}
+
+.btn-cancel {
+  font-size: 24rpx;
+  color: #e53935;
+}
+
+/* 下载进度区域 */
+.progress-block {
+  margin-top: 14rpx;
+}
+
+.progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.progress-bar {
+  flex: 1;
+}
+
+.progress-pct {
+  flex-shrink: 0;
+  font-size: 22rpx;
+  color: #1a73e8;
+  width: 72rpx;
+  text-align: right;
+}
+
+.progress-eta {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  color: #888;
+}
+
+/* 底部说明 */
+.footer-hint {
+  padding: 20rpx 32rpx;
+  text-align: center;
+}
+
+.footer-hint text {
+  font-size: 22rpx;
+  color: #bbb;
+}

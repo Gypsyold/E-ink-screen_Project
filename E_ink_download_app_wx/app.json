@@ -1,0 +1,41 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/queue/queue",
+    "pages/device/device"
+  ],
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#1a1a2e",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "书库",
+        "iconPath": "images/tab_library.png",
+        "selectedIconPath": "images/tab_library_sel.png"
+      },
+      {
+        "pagePath": "pages/queue/queue",
+        "text": "下载队列",
+        "iconPath": "images/tab_list.png",
+        "selectedIconPath": "images/tab_list_sel.png"
+      },
+      {
+        "pagePath": "pages/device/device",
+        "text": "设备书架",
+        "iconPath": "images/tab_device.png",
+        "selectedIconPath": "images/tab_device_sel.png"
+      }
+    ]
+  },
+  "window": {
+    "navigationBarTextStyle": "white",
+    "navigationBarTitleText": "墨水屏书库",
+    "navigationBarBackgroundColor": "#1a1a2e",
+    "backgroundColor": "#f0f0f0"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

@@ -1,0 +1,123 @@
+/* 顶部操作栏 */
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 32rpx;
+  background: #fff;
+  border-bottom: 1rpx solid #eee;
+}
+
+.top-bar-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #1a1a2e;
+}
+
+.top-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.upload-btn {
+  font-size: 28rpx;
+  color: #fff;
+  background: #1a1a2e;
+  border-radius: 40rpx;
+  padding: 0 32rpx;
+  height: 68rpx;
+  line-height: 68rpx;
+  margin: 0;
+}
+
+.upload-btn[disabled] {
+  opacity: 0.6;
+}
+
+/* 上传提示 */
+.upload-hint {
+  padding: 16rpx 32rpx;
+  background: #fffbe6;
+  border-bottom: 1rpx solid #ffe58f;
+}
+
+.upload-hint text {
+  font-size: 24rpx;
+  color: #876800;
+}
+
+/* 空状态 / 加载中 */
+.state-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100rpx 0;
+}
+
+.state-icon {
+  font-size: 80rpx;
+  margin-bottom: 24rpx;
+}
+
+.state-text {
+  font-size: 28rpx;
+  color: #999;
+}
+
+/* 书籍列表 */
+.book-list {
+  flex: 1;
+  padding: 20rpx 24rpx;
+}
+
+.book-card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 28rpx 24rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.06);
+}
+
+.book-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1a1a2e;
+  margin-bottom: 8rpx;
+}
+
+.book-meta {
+  font-size: 22rpx;
+  color: #999;
+  margin-bottom: 20rpx;
+}
+
+.book-actions {
+  display: flex;
+  gap: 12rpx;
+}
+
+.btn-queue {
+  font-size: 26rpx;
+  color: #fff;
+  background: #1a73e8;
+  border-radius: 32rpx;
+  padding: 0 28rpx;
+  height: 60rpx;
+  line-height: 60rpx;
+  margin: 0;
+}
+
+.btn-delete {
+  font-size: 26rpx;
+  color: #e53935;
+  background: #fff0f0;
+  border-radius: 32rpx;
+  padding: 0 28rpx;
+  height: 60rpx;
+  line-height: 60rpx;
+  margin: 0;
+  border: 1rpx solid #ffcdd2;
+}

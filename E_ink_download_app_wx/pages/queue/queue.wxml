@@ -1,0 +1,54 @@
+<!--下载队列页-->
+<view class="container">
+
+  <!-- 刷新栏 -->
+  <view class="top-bar">
+    <text class="refresh-btn" bindtap="loadQueue">刷新</text>
+  </view>
+
+  <!-- 加载中 -->
+  <view class="state-view" wx:if="{{loading}}">
+    <text class="state-text">加载中...</text>
+  </view>
+
+  <!-- 队列为空 -->
+  <view class="state-view" wx:elif="{{queue.length === 0}}">
+    <text class="state-icon">📋</text>
+    <text class="state-text">队列为空，去书库选择书籍下载</text>
+  </view>
+
+  <!-- 队列列表 -->
+  <scroll-view class="queue-list" scroll-y wx:else enable-back-to-top>
+    <view class="queue-item" wx:for="{{queue}}" wx:key="id">
+      <view class="item-left">
+        <view class="item-title">{{item.title}}</view>
+        <view class="item-time">
+          加入：{{item.queuedAt}}
+          <view wx:if="{{item.doneAt}}" style="display:inline">  完成：{{item.doneAt}}</view>
+        </view>
+        <view wx:if="{{item.statusCls === 'downloading'}}" class="progress-block">
+          <view class="progress-wrap">
+            <progress percent="{{item.progress}}" stroke-width="6"
+                      activeColor="#1a73e8" backgroundColor="#e3f2fd"
+                      class="progress-bar" />
+            <text class="progress-pct">{{item.progress}}%</text>
+          </view>
+          <text class="progress-eta" wx:if="{{item.eta}}">{{item.eta}}后完成</text>
+        </view>
+        <view wx:if="{{item.statusCls === 'pending' || item.statusCls === 'downloading'}}"
+              class="cancel-row">
+          <text class="btn-cancel" bindtap="cancelTask" data-id="{{item.id}}">取消下载</text>
+        </view>
+      </view>
+      <view class="status-badge status-{{item.statusCls}}">
+        <text>{{item.statusText}}</text>
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- 说明 -->
+  <view class="footer-hint">
+    <text>ESP32 每 30 秒自动检查队列并下载到墨水屏</text>
+  </view>
+
+</view>

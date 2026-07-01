@@ -1,0 +1,40 @@
+<!--书库页-->
+<view class="container">
+
+  <!-- 顶部操作栏 -->
+  <view class="top-bar">
+    <text class="top-bar-title">书库</text>
+    <button class="upload-btn" bindtap="uploadBook" disabled="{{uploading}}">
+      {{uploading ? '上传中...' : '+ 上传书籍'}}
+    </button>
+  </view>
+
+  <!-- 上传提示 -->
+  <view class="upload-hint">
+    <text>从微信聊天记录选择 .txt 文件（可先发送到「文件助手」）</text>
+  </view>
+
+  <!-- 加载中 -->
+  <view class="state-view" wx:if="{{loading}}">
+    <text class="state-text">加载中...</text>
+  </view>
+
+  <!-- 空书库 -->
+  <view class="state-view" wx:elif="{{books.length === 0}}">
+    <text class="state-icon">📚</text>
+    <text class="state-text">书库为空，点击上方按钮上传书籍</text>
+  </view>
+
+  <!-- 书籍列表 -->
+  <scroll-view class="book-list" scroll-y wx:else>
+    <view class="book-card" wx:for="{{books}}" wx:key="id">
+      <view class="book-title">{{item.title}}</view>
+      <view class="book-meta">{{item.sizeText}} · {{item.dateText}} · {{item.encoding}}</view>
+      <view class="book-actions">
+        <button class="btn-queue" bindtap="addToQueue" data-id="{{item.id}}">下载到墨水屏</button>
+        <button class="btn-delete" bindtap="deleteBook" data-id="{{item.id}}">删除</button>
+      </view>
+    </view>
+  </scroll-view>
+
+</view>

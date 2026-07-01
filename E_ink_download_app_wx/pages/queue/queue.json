@@ -1,0 +1,8 @@
+{
+  "usingComponents": {},
+  "navigationBarTitleText": "下载队列",
+  "navigationBarBackgroundColor": "#1a1a2e",
+  "navigationBarTextStyle": "white",
+  "backgroundColor": "#f0f0f0",
+  "enablePullDownRefresh": true
+}

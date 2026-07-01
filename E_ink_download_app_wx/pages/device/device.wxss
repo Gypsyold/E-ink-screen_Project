@@ -1,0 +1,98 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: #f0f0f0;
+}
+
+/* 空状态 */
+.state-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100rpx 0;
+}
+.state-icon { font-size: 80rpx; margin-bottom: 24rpx; }
+.state-text { font-size: 28rpx; color: #999; }
+.state-sub  { font-size: 24rpx; color: #bbb; margin-top: 12rpx; }
+
+/* 书籍列表 */
+.book-list {
+  flex: 1;
+  padding: 20rpx 24rpx;
+}
+
+.book-item {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 28rpx 24rpx;
+  margin-bottom: 16rpx;
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.06);
+}
+
+.book-num {
+  flex-shrink: 0;
+  width: 52rpx;
+  height: 52rpx;
+  line-height: 52rpx;
+  text-align: center;
+  background: #e8f0fe;
+  color: #1a73e8;
+  border-radius: 50%;
+  font-size: 26rpx;
+  font-weight: bold;
+}
+
+.book-info {
+  flex: 1;
+  overflow: hidden;
+}
+
+.book-title {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1a1a2e;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.book-meta {
+  display: block;
+  font-size: 22rpx;
+  color: #999;
+  margin-top: 6rpx;
+}
+
+.btn-delete {
+  flex-shrink: 0;
+  font-size: 24rpx;
+  color: #e53935;
+  padding: 10rpx 20rpx;
+  border: 1rpx solid #ffcdd2;
+  border-radius: 24rpx;
+  background: #fff0f0;
+}
+
+/* 底部说明 */
+.footer-hint {
+  padding: 20rpx 32rpx;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+.footer-hint text {
+  font-size: 22rpx;
+  color: #bbb;
+}
+.synced-at {
+  font-size: 20rpx;
+  color: #ccc;
+}

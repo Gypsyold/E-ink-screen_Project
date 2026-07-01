@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "设备书架",
+  "navigationBarBackgroundColor": "#1a1a2e",
+  "navigationBarTextStyle": "white",
+  "enablePullDownRefresh": true,
+  "backgroundColor": "#f0f0f0"
+}

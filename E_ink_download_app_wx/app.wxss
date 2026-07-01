@@ -1,0 +1,11 @@
+page {
+  background: #f0f0f0;
+  font-family: -apple-system, sans-serif;
+  color: #333;
+}
+
+.container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}

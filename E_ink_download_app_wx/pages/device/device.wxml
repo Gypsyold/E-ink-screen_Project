@@ -1,0 +1,40 @@
+<!--设备书架页-->
+<view class="container">
+
+  <!-- 加载中 -->
+  <view class="state-view" wx:if="{{loading}}">
+    <text class="state-text">加载中...</text>
+  </view>
+
+  <!-- 等待设备同步 -->
+  <view class="state-view" wx:elif="{{notSynced}}">
+    <text class="state-icon">📡</text>
+    <text class="state-text">正在等待设备同步</text>
+    <text class="state-sub">请确保墨水屏设备已联网，约30秒后自动同步</text>
+  </view>
+
+  <!-- 空书架 -->
+  <view class="state-view" wx:elif="{{books.length === 0}}">
+    <text class="state-icon">📖</text>
+    <text class="state-text">设备中暂无书籍</text>
+    <text class="state-sub">在书库页下载书籍后会显示在这里</text>
+  </view>
+
+  <!-- 书籍列表（顺序 = SD 卡目录顺序 = 墨水屏书架顺序）-->
+  <scroll-view class="book-list" scroll-y wx:else enable-back-to-top>
+    <view class="book-item" wx:for="{{books}}" wx:key="fn_gbk_hex">
+      <view class="book-num">{{item.idx}}</view>
+      <view class="book-info">
+        <text class="book-title">{{item.title}}</text>
+      </view>
+      <text class="btn-delete" bindtap="deleteBook" data-item="{{item}}">删除</text>
+    </view>
+  </scroll-view>
+
+  <!-- 底部说明 -->
+  <view class="footer-hint" wx:if="{{books.length > 0}}">
+    <text>顺序与墨水屏书架一致 · 删除后约30秒生效</text>
+    <text wx:if="{{syncedAt}}" class="synced-at">上次同步：{{syncedAt}}</text>
+  </view>
+
+</view>
