@@ -63,7 +63,7 @@ Page({
           url: `${app.globalData.apiBase}/upload.php`,
           filePath: file.path,
           name: 'file',
-          formData: { key: app.globalData.apiKey, filename: file.name },
+          formData: { filename: file.name },
           success: (uploadRes) => {
             try {
               const data = JSON.parse(uploadRes.data)
@@ -96,7 +96,7 @@ Page({
       url: `${app.globalData.apiBase}/queue.php`,
       method: 'POST',
       header: { 'content-type': 'application/json' },
-      data: { key: app.globalData.apiKey, book_id: bookId },
+      data: { book_id: bookId },
       success: (res) => {
         if (res.data && res.data.status === 'ok') {
           wx.showToast({ title: '已加入队列', icon: 'success' })
@@ -121,7 +121,7 @@ Page({
       success: (res) => {
         if (!res.confirm) return
         wx.request({
-          url: `${app.globalData.apiBase}/books.php?action=delete&id=${bookId}&key=${app.globalData.apiKey}`,
+          url: `${app.globalData.apiBase}/books.php?action=delete&id=${bookId}`,
           method: 'POST',
           success: () => {
             wx.showToast({ title: '已删除', icon: 'success' })
